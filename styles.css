@@ -1,16 +1,16 @@
 :root {
-  --bg: #0d0d0d;
-  --paper: rgba(24, 24, 24, 0.9);
-  --panel: #262321;
-  --panel-strong: #302c29;
-  --line: rgba(255, 255, 255, 0.08);
-  --text: #fbf7f0;
-  --muted: #d8cab8;
-  --accent: #f0c66b;
-  --accent-deep: #f6e6be;
-  --good: #8dc18b;
-  --warn: #e2b35e;
-  --shadow: 0 18px 44px rgba(0, 0, 0, 0.26);
+  --bg: #f6efe5;
+  --paper: rgba(255, 251, 245, 0.92);
+  --panel: #fff7ee;
+  --panel-strong: #f2e2ce;
+  --line: rgba(120, 84, 47, 0.12);
+  --text: #332317;
+  --muted: #7f6954;
+  --accent: #c9863d;
+  --accent-deep: #8b5724;
+  --good: #5f9d62;
+  --warn: #c9893a;
+  --shadow: 0 18px 44px rgba(107, 72, 40, 0.12);
   --radius: 28px;
   --radius-small: 18px;
   --font-display: "Avenir Next Condensed", "Franklin Gothic Medium",
@@ -28,9 +28,9 @@ body {
   font-family: var(--font-body);
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(240, 198, 107, 0.14), transparent 24%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05), transparent 16%),
-    linear-gradient(180deg, #11100f 0%, #171513 100%);
+    radial-gradient(circle at top left, rgba(201, 134, 61, 0.16), transparent 24%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.72), transparent 18%),
+    linear-gradient(180deg, #fbf4ea 0%, #f3e7d8 100%);
 }
 
 button,
@@ -54,9 +54,8 @@ textarea {
   padding: 18px 24px;
   border-radius: calc(var(--radius) + 6px);
   background:
-    linear-gradient(135deg, rgba(57, 49, 42, 0.98), rgba(25, 22, 19, 0.98)),
-    linear-gradient(180deg, rgba(34, 34, 34, 0.98), rgba(20, 20, 20, 0.98));
-  border: 1px solid rgba(255, 255, 255, 0.06);
+    linear-gradient(135deg, rgba(255, 251, 246, 0.98), rgba(245, 231, 215, 0.98));
+  border: 1px solid rgba(120, 84, 47, 0.10);
   box-shadow: var(--shadow);
 }
 
@@ -105,8 +104,8 @@ textarea {
   gap: 4px;
   padding: 11px 14px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(120, 84, 47, 0.10);
+  background: rgba(255, 255, 255, 0.66);
   color: var(--muted);
   min-width: 132px;
 }
@@ -131,7 +130,7 @@ textarea {
 
 .panel {
   background: var(--paper);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(120, 84, 47, 0.08);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   backdrop-filter: blur(16px);
@@ -157,7 +156,7 @@ textarea {
   display: grid;
   gap: 14px;
   background:
-    linear-gradient(180deg, rgba(40, 35, 31, 0.95), rgba(24, 22, 20, 0.95));
+    linear-gradient(180deg, rgba(255, 247, 237, 0.98), rgba(245, 233, 218, 0.98));
 }
 
 .auth-panel.compact-auth {
@@ -226,8 +225,8 @@ textarea {
   align-items: center;
   padding: 14px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(120, 84, 47, 0.08);
   margin-bottom: 12px;
 }
 
@@ -240,8 +239,8 @@ textarea {
   gap: 10px;
   padding: 22px;
   border-radius: 20px;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(120, 84, 47, 0.20);
+  background: rgba(255, 255, 255, 0.56);
   cursor: pointer;
 }
 
@@ -268,7 +267,7 @@ textarea {
   border-radius: 12px;
   border: 1px solid var(--line);
   padding: 0 12px;
-  background: #101010;
+  background: rgba(255, 255, 255, 0.82);
   color: var(--text);
 }
 
@@ -309,14 +308,14 @@ textarea {
 }
 
 .ghost-button {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.68);
   color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(120, 84, 47, 0.10);
 }
 
 .primary-button {
   background: var(--accent);
-  color: #111111;
+  color: #fffaf3;
   font-weight: 700;
 }
 
@@ -337,11 +336,11 @@ textarea {
 }
 
 .category-card {
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(120, 84, 47, 0.08);
   border-radius: 26px;
   padding: 20px 20px 18px;
   background:
-    linear-gradient(180deg, rgba(73, 64, 56, 0.98), rgba(37, 33, 30, 0.98));
+    linear-gradient(180deg, rgba(255, 251, 246, 0.98), rgba(244, 232, 217, 0.98));
   cursor: pointer;
   text-align: left;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
@@ -361,8 +360,8 @@ textarea {
   margin-top: 16px;
   padding: 14px 16px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
 .all-suppliers-panel summary {
@@ -382,8 +381,8 @@ textarea {
 
 .tool-menu-section {
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(120, 84, 47, 0.08);
   padding: 0 14px;
 }
 
@@ -409,10 +408,10 @@ textarea {
 }
 
 .category-card.active {
-  border-color: rgba(240, 198, 107, 0.55);
+  border-color: rgba(201, 134, 61, 0.46);
   box-shadow:
-    inset 0 0 0 1px rgba(240, 198, 107, 0.18),
-    0 14px 30px rgba(0, 0, 0, 0.18);
+    inset 0 0 0 1px rgba(201, 134, 61, 0.18),
+    0 14px 30px rgba(107, 72, 40, 0.10);
 }
 
 .category-card h3,
@@ -439,12 +438,12 @@ textarea {
 
 .category-card h3 {
   font-size: 1.34rem;
-  color: #fff9f1;
+  color: #372515;
   line-height: 1.05;
 }
 
 .category-card p {
-  color: rgba(255, 247, 235, 0.88);
+  color: var(--muted);
 }
 
 .category-card-count {
@@ -454,9 +453,9 @@ textarea {
   min-width: 48px;
   min-height: 48px;
   border-radius: 18px;
-  background: rgba(240, 198, 107, 0.16);
-  border: 1px solid rgba(240, 198, 107, 0.18);
-  color: #fff4d6;
+  background: rgba(201, 134, 61, 0.12);
+  border: 1px solid rgba(201, 134, 61, 0.16);
+  color: var(--accent-deep);
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -469,12 +468,12 @@ textarea {
 
 .category-card-accent {
   font-size: 0.92rem;
-  color: #fff5df;
+  color: #654b37;
 }
 
 .category-card-caption {
   font-size: 0.86rem;
-  color: rgba(255, 245, 223, 0.78);
+  color: var(--muted);
 }
 
 .category-meta {
@@ -494,8 +493,8 @@ textarea {
 .fact-card {
   padding: 14px;
   border-radius: 18px;
-  background: #262626;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
 .fact-card span {
@@ -524,7 +523,7 @@ textarea {
   min-height: 46px;
   border-radius: 16px;
   border: 1px solid var(--line);
-  background: rgba(17, 17, 17, 0.8);
+  background: rgba(255, 255, 255, 0.84);
   color: var(--text);
   padding: 0 14px;
 }
@@ -545,8 +544,8 @@ textarea {
   margin-bottom: 18px;
   padding: 14px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
 .voice-panel .ghost-button {
@@ -554,15 +553,15 @@ textarea {
 }
 
 .voice-panel.listening {
-  border-color: rgba(240, 198, 107, 0.28);
-  background: rgba(240, 198, 107, 0.08);
+  border-color: rgba(201, 134, 61, 0.22);
+  background: rgba(201, 134, 61, 0.10);
 }
 
 .item-row {
   padding: 18px 18px 16px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
 .simple-input-row {
@@ -639,7 +638,7 @@ textarea {
   padding: 7px 10px;
   border-radius: 999px;
   font-size: 0.82rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.68);
   color: var(--text);
 }
 
@@ -649,9 +648,9 @@ textarea {
   min-height: 240px;
   text-align: center;
   color: var(--muted);
-  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border: 1px dashed rgba(120, 84, 47, 0.18);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.48);
 }
 
 .summary-stats {
@@ -665,7 +664,7 @@ textarea {
   padding: 14px;
   border-radius: 18px;
   background: var(--panel);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
 .stat-card span {
@@ -685,7 +684,7 @@ textarea {
   border-radius: 18px;
   border: 1px solid var(--line);
   padding: 16px;
-  background: #0f0f0f;
+  background: rgba(255, 255, 255, 0.84);
   color: var(--text);
   line-height: 1.45;
 }
@@ -724,6 +723,11 @@ textarea {
   justify-content: flex-end;
 }
 
+.primary-button.sent-state {
+  background: #8dc18b;
+  color: #0f1710;
+}
+
 .drawer-actions {
   display: flex;
   justify-content: flex-end;
@@ -734,8 +738,8 @@ textarea {
   margin-top: 16px;
   padding: 14px 16px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
 .manager-delivery-settings summary {
@@ -754,9 +758,9 @@ textarea {
   gap: 10px;
   padding: 16px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow: inset 3px 0 0 rgba(240, 198, 107, 0.45);
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(120, 84, 47, 0.08);
+  box-shadow: inset 3px 0 0 rgba(201, 134, 61, 0.45);
 }
 
 .order-list-group h3 {
@@ -775,8 +779,8 @@ textarea {
   gap: 8px;
   padding: 14px 16px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
 .checklist-item-head {
@@ -806,8 +810,8 @@ textarea {
 }
 
 .checklist-item.today {
-  border-color: rgba(240, 198, 107, 0.35);
-  background: rgba(240, 198, 107, 0.08);
+  border-color: rgba(201, 134, 61, 0.24);
+  background: rgba(201, 134, 61, 0.10);
 }
 
 .checklist-popup {
@@ -819,7 +823,7 @@ textarea {
 .checklist-popup-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.62);
+  background: rgba(89, 60, 31, 0.22);
 }
 
 .checklist-popup-panel {
@@ -838,8 +842,8 @@ textarea {
   gap: 12px;
   padding: 14px 16px;
   border-radius: 16px;
-  background: #242424;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
 .summary-line span {
@@ -855,8 +859,8 @@ textarea {
 .hint-card {
   padding: 14px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
 .hint-card strong {
@@ -865,7 +869,7 @@ textarea {
 }
 
 .subtle {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(201, 134, 61, 0.08);
 }
 
 .status-ok {
@@ -885,7 +889,7 @@ textarea {
 .stock-drawer-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.58);
+  background: rgba(89, 60, 31, 0.22);
 }
 
 .stock-drawer-panel {
@@ -896,7 +900,7 @@ textarea {
   width: min(600px, calc(100vw - 20px));
   overflow-y: auto;
   background:
-    linear-gradient(180deg, rgba(44, 39, 35, 0.99), rgba(22, 20, 18, 0.99));
+    linear-gradient(180deg, rgba(255, 251, 246, 0.99), rgba(244, 232, 218, 0.99));
   animation: drawer-in 180ms ease;
   touch-action: pan-y;
 }

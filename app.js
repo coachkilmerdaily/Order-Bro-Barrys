@@ -753,9 +753,12 @@ function renderActiveCategory(today) {
   refs.stockPanel.classList.remove("hidden");
   refs.voiceInputButton.disabled = false;
   refs.voiceInputButton.textContent = isListening ? "Listening..." : "Talk to me";
+  const alreadyInTomorrowList = Boolean(appState.todayOrderList?.[category.id]?.lines?.length);
   refs.sendToOrderListButton.disabled = false;
   refs.sendToWeeklyListButton.disabled = false;
   refs.clearSupplierButton.disabled = false;
+  refs.sendToOrderListButton.textContent = alreadyInTomorrowList ? "Added to tomorrow list" : "Add to tomorrow list";
+  refs.sendToOrderListButton.classList.toggle("sent-state", alreadyInTomorrowList);
   refs.voiceStatus.textContent = voiceStatusMessage || (isListening
     ? `Listening for ${category.name}. Say counts like 3 beef patties, 12 chicken, 8 bacon.`
     : `Speak stock counts for ${category.name}. Example: 3 beef patties, 12 chicken, 8 bacon.`);
@@ -823,6 +826,7 @@ function renderActiveCategory(today) {
     row.querySelector(`[data-item-input="${item.id}"]`).addEventListener("input", (event) => {
       const nextValue = Number.parseInt(event.target.value, 10);
       item.currentStock = Number.isFinite(nextValue) && nextValue >= 0 ? nextValue : 0;
+      delete appState.supplierRecheckState[category.id];
       persistState();
       renderSummary(today);
     });
@@ -838,6 +842,7 @@ function renderActiveCategory(today) {
 function renderSummary(today) {
   const activeCategory = getActiveCategory();
   const summaryGroups = activeCategory
+    && !appState.supplierRecheckState?.[activeCategory.id]
     ? [activeCategory]
         .map((category) => {
           const plan = getSupplierPlan(category, today);
@@ -867,7 +872,9 @@ function renderSummary(today) {
     textLines.push("No order required right now.");
     refs.summaryPreview.className = "summary-preview empty-state";
     refs.summaryPreview.textContent = activeCategory
-      ? "No order required right now."
+      ? appState.supplierRecheckState?.[activeCategory.id]
+        ? "Re-enter the stock counts for this supplier."
+        : "No order required right now."
       : "Choose a supplier, enter current stock, and the order will appear here.";
   }
 
@@ -1567,6 +1574,7 @@ function sendActiveSupplierToOrderList() {
     createdAt: new Date().toISOString(),
     lines
   };
+  delete appState.supplierRecheckState[category.id];
   setOrderChecklistDone(getTodayInfo().isoDate, category.id, true);
   voiceStatusMessage = `${category.name} added to the order list for tomorrow.`;
   persistState();
@@ -1620,8 +1628,9 @@ function clearActiveSupplier() {
   });
   delete appState.todayOrderList[category.id];
   delete appState.weeklyReminderList[category.id];
+  appState.supplierRecheckState[category.id] = true;
   setOrderChecklistDone(getTodayInfo().isoDate, category.id, false);
-  voiceStatusMessage = `${category.name} cleared for a fresh check.`;
+  voiceStatusMessage = `${category.name} reset for a fresh check.`;
   persistState();
   render();
 }
@@ -2018,6 +2027,7 @@ function resetState() {
     weeklyReminderList: {},
     managerContact: defaultManagerContact,
     dailyOrderChecklist: {},
+    supplierRecheckState: {},
     weeklyChecklistCompletions: {},
     checklistPopupDismissed: {},
     lastCycleDate: getTodayInfo().isoDate
@@ -2050,6 +2060,7 @@ function applyDailyRolloverIfNeeded() {
   appState.weeklyChecklistCompletions = {};
   appState.checklistPopupDismissed = {};
   appState.dailyOrderChecklist = {};
+  appState.supplierRecheckState = {};
   appState.lastCycleDate = today.isoDate;
   activeCategoryId = null;
   persistState();
@@ -2574,6 +2585,7 @@ function getDefaultAppState() {
     weeklyReminderList: {},
     managerContact: defaultManagerContact,
     dailyOrderChecklist: {},
+    supplierRecheckState: {},
     weeklyChecklistCompletions: {},
     checklistPopupDismissed: {},
     lastCycleDate: getTodayInfo().isoDate
@@ -2617,6 +2629,7 @@ function hydrateParsedState(parsed) {
     weeklyReminderList: parsed.weeklyReminderList && typeof parsed.weeklyReminderList === "object" ? parsed.weeklyReminderList : {},
     managerContact: { ...defaultManagerContact, ...(parsed.managerContact || {}) },
     dailyOrderChecklist: parsed.dailyOrderChecklist && typeof parsed.dailyOrderChecklist === "object" ? parsed.dailyOrderChecklist : {},
+    supplierRecheckState: parsed.supplierRecheckState && typeof parsed.supplierRecheckState === "object" ? parsed.supplierRecheckState : {},
     weeklyChecklistCompletions: parsed.weeklyChecklistCompletions && typeof parsed.weeklyChecklistCompletions === "object" ? parsed.weeklyChecklistCompletions : {},
     checklistPopupDismissed: parsed.checklistPopupDismissed && typeof parsed.checklistPopupDismissed === "object" ? parsed.checklistPopupDismissed : {},
     lastCycleDate: parsed.lastCycleDate || fallback.lastCycleDate
