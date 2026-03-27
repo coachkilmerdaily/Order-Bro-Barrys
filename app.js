@@ -676,22 +676,22 @@ function renderCategoryGrid(today) {
   dayPlan.entries.forEach(({ category, status }) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `category-card ${category.id === activeCategoryId ? "active" : ""}`;
+    button.className = `category-card status-card-${status} ${category.id === activeCategoryId ? "active" : ""}`;
     const supplierMark = getSupplierMark(category);
     const supplierAccent = getSupplierAccent(category);
-    const statusLabel = getChecklistStatusLabel(status);
     button.innerHTML = `
       <div class="category-card-top">
         <div>
           <h3>${category.name}</h3>
           <p>${category.items.length} item${category.items.length === 1 ? "" : "s"} to check</p>
         </div>
-        <span class="category-card-count">${supplierMark}</span>
+        <span class="category-card-count">${status === "done" ? "✓" : supplierMark}</span>
       </div>
       <div class="category-card-meta">
         <span class="category-card-accent">${supplierAccent}</span>
         <span class="category-card-caption status-${status}">${status === "done" ? "Checked for today" : status === "in-progress" ? "In progress" : "Ready to check"}</span>
       </div>
+      ${status === "done" ? '<span class="category-card-strike" aria-hidden="true">DONE</span>' : ""}
     `;
     button.addEventListener("click", () => {
       activeCategoryId = category.id;
