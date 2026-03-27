@@ -556,18 +556,6 @@ textarea {
   color: #43684a;
 }
 
-.category-card-strike {
-  position: absolute;
-  right: 26px;
-  top: 50%;
-  transform: translateY(-50%) rotate(-12deg);
-  font-family: "Brush Script MT", "Segoe Script", cursive;
-  font-size: clamp(2.2rem, 4vw, 3.4rem);
-  color: rgba(47, 112, 65, 0.18);
-  letter-spacing: 0.02em;
-  pointer-events: none;
-}
-
 .category-card h3,
 .item-name {
   margin: 0;

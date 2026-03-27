@@ -691,7 +691,6 @@ function renderCategoryGrid(today) {
         <span class="category-card-accent">${supplierAccent}</span>
         <span class="category-card-caption status-${status}">${status === "done" ? "Checked for today" : status === "in-progress" ? "In progress" : "Ready to check"}</span>
       </div>
-      ${status === "done" ? '<span class="category-card-strike" aria-hidden="true">DONE</span>' : ""}
     `;
     button.addEventListener("click", () => {
       activeCategoryId = category.id;
