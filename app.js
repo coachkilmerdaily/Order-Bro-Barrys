@@ -52,6 +52,16 @@ const defaultWeeklyChecklist = [
   { id: "packaging-check", title: "Check packaging levels for orders", note: "To be done on Wednesday", dayIndex: 3 }
 ];
 
+const dailyOrderSchedule = {
+  0: ["buns", "galipo", "meat", "fv"],
+  1: [],
+  2: ["meat"],
+  3: ["meat", "fv", "galipo", "packaging"],
+  4: ["meat", "galipo"],
+  5: ["meat", "fv", "buns"],
+  6: ["meat"]
+};
+
 const tradeMultipliers = {
   quiet: 0.92,
   normal: 1,
@@ -79,6 +89,18 @@ const eventProfiles = {
 };
 
 const categorySeeds = [
+  {
+    id: "buns",
+    name: "Buns",
+    supplier: "Buns",
+    accent: "Burger buns and rolls",
+    scheduleKey: "weekdays",
+    demandMode: "steady",
+    notes: "",
+    items: [
+      { id: "burger-buns", name: "Burger Buns", supplier: "Buns", packSize: "tray", parLevel: 3, currentStock: 1, dailyUse: 1, preferredMax: 5, hardMax: 6, storage: "Dry store", tags: ["core", "event"] }
+    ]
+  },
   {
     id: "meat",
     name: "Saint Meat",
@@ -279,6 +301,8 @@ let syncReady = false;
 let syncSession = null;
 let syncSaveTimer = null;
 let syncHydrating = false;
+let drawerTouchStartY = 0;
+let drawerTouchStartX = 0;
 
 const refs = {
   todayLabel: document.getElementById("todayLabel"),
@@ -290,8 +314,10 @@ const refs = {
   authSignOutButton: document.getElementById("authSignOutButton"),
   authStatus: document.getElementById("authStatus"),
   categoryGrid: document.getElementById("categoryGrid"),
+  allCategoryGrid: document.getElementById("allCategoryGrid"),
   stockPanel: document.getElementById("stockPanel"),
   stockDrawerScrim: document.getElementById("stockDrawerScrim"),
+  stockDrawerPanel: document.querySelector(".stock-drawer-panel"),
   categoryTitle: document.getElementById("categoryTitle"),
   categorySubtext: document.getElementById("categorySubtext"),
   backToSuppliersButton: document.getElementById("backToSuppliersButton"),
@@ -371,6 +397,8 @@ function init() {
     stopVoiceRecognition();
     render();
   });
+  refs.stockDrawerPanel.addEventListener("touchstart", onDrawerTouchStart, { passive: true });
+  refs.stockDrawerPanel.addEventListener("touchend", onDrawerTouchEnd, { passive: true });
   refs.sendToOrderListButton.addEventListener("click", sendActiveSupplierToOrderList);
   refs.sendToWeeklyListButton.addEventListener("click", sendActiveSupplierToWeeklyList);
   refs.clearSupplierButton.addEventListener("click", clearActiveSupplier);
@@ -398,6 +426,7 @@ function render() {
   renderAuthPanel();
   renderContextPanel();
   renderCategoryGrid(today);
+  renderAllCategoryGrid();
   renderActiveCategory(today);
   renderSummary(today);
   renderTodayOrderList(today);
@@ -409,6 +438,12 @@ function render() {
 }
 
 function renderAuthPanel() {
+  const locked = !syncSession;
+  document.querySelectorAll("main.layout > section:not(.auth-panel)").forEach((section) => {
+    section.classList.toggle("hidden", locked);
+  });
+  refs.stockPanel.classList.toggle("hidden", locked || !getActiveCategory());
+
   if (!supabaseClient) {
     refs.authStatus.textContent = "Sync setup is loading.";
     refs.authSignInButton.disabled = true;
@@ -623,24 +658,39 @@ function renderContextPanel() {
 
 function renderCategoryGrid(today) {
   refs.categoryGrid.innerHTML = "";
+  const dayPlan = getTodayOrderChecklist(today);
+  if (dayPlan.closed) {
+    refs.categoryGrid.className = "category-grid single-column-grid";
+    refs.categoryGrid.innerHTML = `
+      <div class="category-card checklist-empty-card">
+        <div>
+          <h3>Closed today</h3>
+          <p>No supplier runs are scheduled for ${today.dayName}.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
 
-  appState.categories.forEach((category) => {
+  refs.categoryGrid.className = "category-grid";
+  dayPlan.entries.forEach(({ category, status }) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `category-card ${category.id === activeCategoryId ? "active" : ""}`;
     const supplierMark = getSupplierMark(category);
     const supplierAccent = getSupplierAccent(category);
+    const statusLabel = getChecklistStatusLabel(status);
     button.innerHTML = `
       <div class="category-card-top">
         <div>
           <h3>${category.name}</h3>
-          <p>${category.items.length} items</p>
+          <p>${statusLabel}</p>
         </div>
         <span class="category-card-count">${supplierMark}</span>
       </div>
       <div class="category-card-meta">
         <span class="category-card-accent">${supplierAccent}</span>
-        <span class="category-card-caption">Open stock list</span>
+        <span class="category-card-caption">${status === "done" ? "Done for today" : "Open stock list"}</span>
       </div>
     `;
     button.addEventListener("click", () => {
@@ -649,6 +699,29 @@ function renderCategoryGrid(today) {
     });
 
     refs.categoryGrid.appendChild(button);
+  });
+}
+
+function renderAllCategoryGrid() {
+  refs.allCategoryGrid.innerHTML = "";
+  appState.categories.forEach((category) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `category-card compact-card ${category.id === activeCategoryId ? "active" : ""}`;
+    button.innerHTML = `
+      <div class="category-card-top">
+        <div>
+          <h3>${category.name}</h3>
+          <p>${category.items.length} items</p>
+        </div>
+        <span class="category-card-count">${getSupplierMark(category)}</span>
+      </div>
+    `;
+    button.addEventListener("click", () => {
+      activeCategoryId = category.id;
+      render();
+    });
+    refs.allCategoryGrid.appendChild(button);
   });
 }
 
@@ -748,6 +821,10 @@ function renderActiveCategory(today) {
       const nextValue = Number.parseInt(event.target.value, 10);
       item.currentStock = Number.isFinite(nextValue) && nextValue >= 0 ? nextValue : 0;
       persistState();
+      renderSummary(today);
+    });
+
+    row.querySelector(`[data-item-input="${item.id}"]`).addEventListener("change", () => {
       render();
     });
 
@@ -875,7 +952,7 @@ function renderTodayOrderList(today) {
 
   if (!entries.length) {
     refs.todayOrderList.className = "summary-preview empty-state";
-    refs.todayOrderList.textContent = "Add a supplier order from the drawer and it will appear here.";
+    refs.todayOrderList.textContent = "Add a supplier order from the drawer and it will appear here in the order list for tomorrow.";
     return;
   }
 
@@ -1481,7 +1558,8 @@ function sendActiveSupplierToOrderList() {
     createdAt: new Date().toISOString(),
     lines
   };
-  voiceStatusMessage = `${category.name} added to today's order list.`;
+  setOrderChecklistDone(getTodayInfo().isoDate, category.id, true);
+  voiceStatusMessage = `${category.name} added to the order list for tomorrow.`;
   persistState();
   render();
 }
@@ -1533,6 +1611,7 @@ function clearActiveSupplier() {
   });
   delete appState.todayOrderList[category.id];
   delete appState.weeklyReminderList[category.id];
+  setOrderChecklistDone(getTodayInfo().isoDate, category.id, false);
   voiceStatusMessage = `${category.name} cleared for a fresh check.`;
   persistState();
   render();
@@ -1602,11 +1681,11 @@ function buildManagerOrderMessage() {
   const today = getTodayInfo();
   const entries = getSanitizedTodayOrderEntries();
   if (!entries.length) {
-    return `What we need for tomorrow\n${formatLongDate(today.date)}\n\nNo supplier orders added yet.`;
+    return `Order List for Tomorrow\n${formatLongDate(today.date)}\n\nNo supplier orders added yet.`;
   }
 
   const lines = [
-    "What we need for tomorrow",
+    "Order List for Tomorrow",
     formatLongDate(today.date),
     ""
   ];
@@ -1703,12 +1782,91 @@ function getWeeklyChecklistItems(today) {
   }));
 }
 
+function getTodayOrderChecklist(today) {
+  const scheduledIds = dailyOrderSchedule[today.dayIndex] || [];
+  if (!scheduledIds.length) {
+    return { closed: true, entries: [] };
+  }
+
+  const completionMap = appState.dailyOrderChecklist?.[today.isoDate] || {};
+  const entries = scheduledIds
+    .map((id) => appState.categories.find((category) => category.id === id))
+    .filter(Boolean)
+    .map((category) => ({
+      category,
+      status: getOrderChecklistStatus(today.isoDate, category, completionMap[category.id])
+    }))
+    .sort((left, right) => checklistStatusRank(left.status) - checklistStatusRank(right.status));
+
+  return { closed: false, entries };
+}
+
+function getOrderChecklistStatus(isoDate, category, isDone) {
+  if (isDone) {
+    return "done";
+  }
+  const hasStarted = category.items.some((item) => Number(item.currentStock) > 0);
+  return hasStarted ? "in-progress" : "not-started";
+}
+
+function checklistStatusRank(status) {
+  const order = {
+    "not-started": 0,
+    "in-progress": 1,
+    done: 2
+  };
+  return order[status] ?? 99;
+}
+
+function getChecklistStatusLabel(status) {
+  if (status === "done") return "Done";
+  if (status === "in-progress") return "In progress";
+  return "Not started";
+}
+
+function setOrderChecklistDone(isoDate, categoryId, value) {
+  if (!appState.dailyOrderChecklist[isoDate]) {
+    appState.dailyOrderChecklist[isoDate] = {};
+  }
+
+  if (value) {
+    appState.dailyOrderChecklist[isoDate][categoryId] = true;
+    return;
+  }
+
+  delete appState.dailyOrderChecklist[isoDate][categoryId];
+}
+
 function dismissChecklistPopup() {
   const today = getTodayInfo();
   const popupKey = `weekly-checklist-${today.isoDate}`;
   appState.checklistPopupDismissed[popupKey] = true;
   persistState();
   render();
+}
+
+function onDrawerTouchStart(event) {
+  const touch = event.changedTouches?.[0];
+  if (!touch) {
+    return;
+  }
+  drawerTouchStartY = touch.clientY;
+  drawerTouchStartX = touch.clientX;
+}
+
+function onDrawerTouchEnd(event) {
+  const touch = event.changedTouches?.[0];
+  if (!touch || !activeCategoryId) {
+    return;
+  }
+
+  const deltaY = touch.clientY - drawerTouchStartY;
+  const deltaX = Math.abs(touch.clientX - drawerTouchStartX);
+  if (refs.stockDrawerPanel.scrollTop <= 10 && deltaY > 110 && deltaX < 80) {
+    activeCategoryId = null;
+    stopVoiceRecognition();
+    render();
+  }
 }
 
 function onWeeklyChecklistToggle(event) {
@@ -1850,6 +2008,7 @@ function resetState() {
     todayOrderList: {},
     weeklyReminderList: {},
     managerContact: defaultManagerContact,
+    dailyOrderChecklist: {},
     weeklyChecklistCompletions: {},
     checklistPopupDismissed: {},
     lastCycleDate: getTodayInfo().isoDate
@@ -1881,6 +2040,7 @@ function applyDailyRolloverIfNeeded() {
   appState.weeklyReminderList = {};
   appState.weeklyChecklistCompletions = {};
   appState.checklistPopupDismissed = {};
+  appState.dailyOrderChecklist = {};
   appState.lastCycleDate = today.isoDate;
   activeCategoryId = null;
   persistState();
@@ -2404,6 +2564,7 @@ function getDefaultAppState() {
     todayOrderList: {},
     weeklyReminderList: {},
     managerContact: defaultManagerContact,
+    dailyOrderChecklist: {},
     weeklyChecklistCompletions: {},
     checklistPopupDismissed: {},
     lastCycleDate: getTodayInfo().isoDate
@@ -2430,6 +2591,7 @@ function hydrateParsedState(parsed) {
     todayOrderList: parsed.todayOrderList && typeof parsed.todayOrderList === "object" ? parsed.todayOrderList : {},
     weeklyReminderList: parsed.weeklyReminderList && typeof parsed.weeklyReminderList === "object" ? parsed.weeklyReminderList : {},
     managerContact: { ...defaultManagerContact, ...(parsed.managerContact || {}) },
+    dailyOrderChecklist: parsed.dailyOrderChecklist && typeof parsed.dailyOrderChecklist === "object" ? parsed.dailyOrderChecklist : {},
     weeklyChecklistCompletions: parsed.weeklyChecklistCompletions && typeof parsed.weeklyChecklistCompletions === "object" ? parsed.weeklyChecklistCompletions : {},
     checklistPopupDismissed: parsed.checklistPopupDismissed && typeof parsed.checklistPopupDismissed === "object" ? parsed.checklistPopupDismissed : {},
     lastCycleDate: parsed.lastCycleDate || fallback.lastCycleDate

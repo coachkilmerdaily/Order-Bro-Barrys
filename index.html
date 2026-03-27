@@ -34,6 +34,7 @@
             <div>
               <p class="section-kicker">Sync</p>
               <h2>Shared Barry's login</h2>
+              <p class="section-note">Sign in once, then use the same shared live data on phone and desktop.</p>
             </div>
           </div>
           <div class="auth-grid">
@@ -57,23 +58,30 @@
         <section class="panel dashboard-panel">
           <div class="section-heading">
             <div>
-              <p class="section-kicker">Suppliers</p>
-              <h2>Choose a supplier</h2>
+              <p class="section-kicker">Today</p>
+              <h2>Today's ordering checklist</h2>
+              <p class="section-note">Work through the suppliers due today. Once a supplier is added to the order list for tomorrow, it can be marked off as done.</p>
             </div>
           </div>
           <div id="categoryGrid" class="category-grid"></div>
+
+          <details class="all-suppliers-panel">
+            <summary>All suppliers</summary>
+            <div id="allCategoryGrid" class="category-grid compact-category-grid"></div>
+          </details>
         </section>
 
         <section class="panel dashboard-panel order-list-panel">
           <div class="section-heading">
             <div>
               <p class="section-kicker">Tomorrow</p>
-              <h2>What we need for tomorrow</h2>
+              <h2>Order List for Tomorrow</h2>
+              <p class="section-note">This is the final list you build today for tomorrow's ordering and manager handoff.</p>
             </div>
           </div>
 
           <div id="todayOrderList" class="summary-preview empty-state">
-            Add a supplier order from the drawer and it will appear here.
+            Add a supplier order from the drawer and it will appear here for tomorrow.
           </div>
 
           <div class="manager-actions">
@@ -119,6 +127,7 @@
             <div>
               <p class="section-kicker">Weekly</p>
               <h2>Weekly bulk items / reminders</h2>
+              <p class="section-note">Use this for slower-moving or once-a-week jobs you do not want to forget.</p>
             </div>
           </div>
 
@@ -177,7 +186,7 @@
                     Send to weekly reminders
                   </button>
                   <button id="sendToOrderListButton" class="primary-button" type="button">
-                    Send to today's order list
+                    Add to Order List for Tomorrow
                   </button>
                 </div>
               </div>
