@@ -300,6 +300,7 @@ let syncHydrating = false;
 let drawerTouchStartY = 0;
 let drawerTouchStartX = 0;
 let totalListVisible = false;
+let lastCelebrationKey = "";
 
 const refs = {
   todayLabel: document.getElementById("todayLabel"),
@@ -314,6 +315,7 @@ const refs = {
   todayRunTitle: document.getElementById("todayRunTitle"),
   todayRunNote: document.getElementById("todayRunNote"),
   todayRunSuppliers: document.getElementById("todayRunSuppliers"),
+  runProgressFill: document.getElementById("runProgressFill"),
   viewTotalListButton: document.getElementById("viewTotalListButton"),
   categoryGrid: document.getElementById("categoryGrid"),
   allCategoryGrid: document.getElementById("allCategoryGrid"),
@@ -355,6 +357,7 @@ const refs = {
   checklistPopupScrim: document.getElementById("checklistPopupScrim"),
   checklistPopupList: document.getElementById("checklistPopupList"),
   closeChecklistPopupButton: document.getElementById("closeChecklistPopupButton"),
+  confettiLayer: document.getElementById("confettiLayer"),
   totalLineCount: document.getElementById("totalLineCount"),
   totalUnitCount: document.getElementById("totalUnitCount"),
   warningCount: document.getElementById("warningCount"),
@@ -705,29 +708,43 @@ function renderRunBoard(today) {
     refs.todayRunTitle.textContent = "Closed today";
     refs.todayRunNote.textContent = `No supplier runs are scheduled for ${today.dayName}.`;
     refs.todayRunSuppliers.innerHTML = "";
+    refs.runProgressFill.style.width = "0%";
     refs.viewTotalListButton.disabled = !getSanitizedTodayOrderEntries().length;
     refs.totalListPanel.classList.toggle("hidden", !totalListVisible);
     return;
   }
 
   const doneCount = dayPlan.entries.filter((entry) => entry.status === "done").length;
+  const completionPercent = dayPlan.entries.length ? Math.round((doneCount / dayPlan.entries.length) * 100) : 0;
   refs.todayRunTitle.textContent = `${doneCount} of ${dayPlan.entries.length} checked`;
   refs.todayRunNote.textContent = doneCount === dayPlan.entries.length
     ? "Today's supplier checks are complete."
     : "Tap a supplier below, enter what is on hand, then mark it checked.";
+  refs.runProgressFill.style.width = `${completionPercent}%`;
   refs.todayRunSuppliers.innerHTML = dayPlan.entries
     .map(({ category, status }) => `
-      <div class="run-supplier-pill ${status}">
+      <button type="button" class="run-supplier-pill ${status}" data-run-supplier="${category.id}">
         <span>${category.name}</span>
         <strong>${status === "done" ? "Checked" : status === "in-progress" ? "In progress" : "To do"}</strong>
-      </div>
+      </button>
     `)
     .join("");
+
+  refs.todayRunSuppliers.querySelectorAll("[data-run-supplier]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeCategoryId = button.dataset.runSupplier;
+      render();
+    });
+  });
 
   const hasTotalList = getSanitizedTodayOrderEntries().length > 0;
   refs.viewTotalListButton.disabled = !hasTotalList;
   refs.viewTotalListButton.textContent = hasTotalList ? "View total list" : "Total list empty";
   refs.totalListPanel.classList.toggle("hidden", !totalListVisible || !hasTotalList);
+
+  if (completionPercent === 100) {
+    celebrateOnce(`checklist-complete:${today.isoDate}`);
+  }
 }
 
 function renderAllCategoryGrid() {
@@ -1649,10 +1666,14 @@ async function textManager() {
       message: body,
       orderList: getSanitizedTodayOrderEntries()
     });
+    if (result === "Sent to manager.") {
+      celebrateOnce(`manager-send:sms:${getTodayInfo().isoDate}`);
+    }
     window.alert(result);
     return;
   }
 
+  celebrateOnce(`manager-send:sms:${getTodayInfo().isoDate}`);
   const smsUrl = `sms:${encodeURIComponent(phone)}?body=${encodeURIComponent(body)}`;
   window.location.href = smsUrl;
 }
@@ -1674,12 +1695,49 @@ async function emailManager() {
       message: body,
       orderList: getSanitizedTodayOrderEntries()
     });
+    if (result === "Sent to manager.") {
+      celebrateOnce(`manager-send:email:${getTodayInfo().isoDate}`);
+    }
     window.alert(result);
     return;
   }
 
+  celebrateOnce(`manager-send:email:${getTodayInfo().isoDate}`);
   const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = mailtoUrl;
+}
+
+function celebrateOnce(key) {
+  if (lastCelebrationKey === key) {
+    return;
+  }
+  lastCelebrationKey = key;
+  launchConfettiBurst();
+}
+
+function launchConfettiBurst() {
+  if (!refs.confettiLayer) {
+    return;
+  }
+
+  refs.confettiLayer.innerHTML = "";
+  const colors = ["#d59a4b", "#7abf73", "#f06b52", "#f2d06b", "#9ac7ff"];
+  for (let index = 0; index < 28; index += 1) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background = colors[index % colors.length];
+    piece.style.setProperty("--drift", `${(Math.random() - 0.5) * 180}px`);
+    piece.style.setProperty("--spin", `${(Math.random() - 0.5) * 720}deg`);
+    piece.style.animationDelay = `${Math.random() * 120}ms`;
+    refs.confettiLayer.appendChild(piece);
+  }
+
+  window.setTimeout(() => {
+    if (refs.confettiLayer) {
+      refs.confettiLayer.innerHTML = "";
+    }
+  }, 1800);
 }
 
 function buildManagerOrderMessage() {

@@ -407,6 +407,21 @@ textarea {
   font-size: clamp(1.3rem, 2vw, 1.9rem);
 }
 
+.run-progress {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(120, 84, 47, 0.08);
+  overflow: hidden;
+}
+
+.run-progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d59a4b 0%, #e6be5f 42%, #7abf73 100%);
+  transition: width 260ms ease;
+}
+
 .run-suppliers {
   display: flex;
   flex-wrap: wrap;
@@ -421,7 +436,9 @@ textarea {
   padding: 0 14px;
   border-radius: 999px;
   background: rgba(120, 84, 47, 0.06);
+  border: 1px solid rgba(120, 84, 47, 0.08);
   color: var(--text);
+  cursor: pointer;
 }
 
 .run-supplier-pill strong {
@@ -447,6 +464,38 @@ textarea {
 
 .run-supplier-pill.not-started strong {
   color: #7f6954;
+}
+
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 80;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -24px;
+  width: 12px;
+  height: 18px;
+  border-radius: 4px;
+  opacity: 0.92;
+  animation: confetti-fall 1600ms ease-out forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(var(--drift, 0px), 110vh, 0) rotate(var(--spin, 360deg));
+    opacity: 0;
+  }
 }
 
 .tool-menu-section {
