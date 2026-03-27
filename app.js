@@ -307,6 +307,7 @@ let drawerTouchStartX = 0;
 const refs = {
   todayLabel: document.getElementById("todayLabel"),
   currentTimeLabel: document.getElementById("currentTimeLabel"),
+  authPanel: document.querySelector(".auth-panel"),
   authEmailInput: document.getElementById("authEmailInput"),
   authPasswordInput: document.getElementById("authPasswordInput"),
   authSignInButton: document.getElementById("authSignInButton"),
@@ -443,6 +444,7 @@ function renderAuthPanel() {
     section.classList.toggle("hidden", locked);
   });
   refs.stockPanel.classList.toggle("hidden", locked || !getActiveCategory());
+  refs.authPanel?.classList.toggle("compact-auth", !locked);
 
   if (!supabaseClient) {
     refs.authStatus.textContent = "Sync setup is loading.";
@@ -1018,6 +1020,12 @@ function renderWeeklyChecklist(today) {
 }
 
 function renderChecklistPopup(today) {
+  if (!syncSession) {
+    refs.checklistPopup.classList.add("hidden");
+    refs.checklistPopupList.innerHTML = "";
+    return;
+  }
+
   const dueToday = getWeeklyChecklistItems(today).filter((item) => item.isToday && !item.completed);
   const popupKey = `weekly-checklist-${today.isoDate}`;
   const overdueActive = dueToday.some((item) => item.overdue);

@@ -208,160 +208,159 @@
             </article>
           </div>
 
-          <details class="panel summary-panel accordion-panel">
+          <details class="panel summary-panel accordion-panel quiet-menu-panel">
             <summary class="accordion-summary">
               <div>
-                <p class="section-kicker">Week Overview</p>
-                <h2>This week</h2>
+                <p class="section-kicker">Menu</p>
+                <h2>More tools</h2>
               </div>
             </summary>
 
-            <div class="accordion-content">
-              <div class="weather-sync-bar">
-                <div>
-                  <strong id="liveWeatherStatus">Live weather not synced yet</strong>
-                  <p id="liveWeatherMeta" class="helper-copy">
-                    Manual weather setting is active until a live fetch succeeds.
-                  </p>
-                </div>
-                <button id="syncWeatherButton" class="ghost-button" type="button">
-                  Sync live weather
-                </button>
-              </div>
-
-              <div class="delivery-facts">
-                <div class="fact-card">
-                  <span>Available today</span>
-                  <strong id="todayAvailabilityValue">-</strong>
-                </div>
-                <div class="fact-card">
-                  <span>Next valid delivery</span>
-                  <strong id="nextDeliveryValue">-</strong>
-                </div>
-                <div class="fact-card">
-                  <span>Stock must cover</span>
-                  <strong id="coverDaysValue">-</strong>
-                </div>
-              </div>
-
-              <div class="category-meta">
-                <label class="field">
-                  <span>Manual trade expectation</span>
-                  <select id="tradeExpectationSelect">
-                    <option value="normal">Normal</option>
-                    <option value="quiet">Quiet</option>
-                    <option value="busy">Busy</option>
-                    <option value="very-busy">Very busy</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Weather outlook</span>
-                  <select id="weatherModeSelect">
-                    <option value="neutral">Typical Semaphore weather</option>
-                    <option value="hot">Hot / warm</option>
-                    <option value="cold">Cold / wet / windy</option>
-                    <option value="severe">Severe weather warning</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Local event impact</span>
-                  <select id="eventImpactSelect">
-                    <option value="none">No known event</option>
-                    <option value="local">Local activity</option>
-                    <option value="major">Major event</option>
-                  </select>
-                </label>
-                <label class="field">
-                  <span>Event name</span>
-                  <input id="eventNameInput" type="text" placeholder="Semaphore Street Fair" />
-                </label>
-                <label class="field">
-                  <span>Supplier note</span>
-                  <input
-                    id="orderNotesInput"
-                    type="text"
-                    placeholder="Optional note"
-                  />
-                </label>
-                <label class="field">
-                  <span>Category demand lean</span>
-                  <select id="categoryDemandSelect">
-                    <option value="steady">Steady week</option>
-                    <option value="busy">Busy week</option>
-                    <option value="quiet">Quiet week</option>
-                  </select>
-                </label>
-                <label class="field field-wide">
-                  <span>Weather / event note</span>
-                  <input
-                    id="contextNoteInput"
-                    type="text"
-                    placeholder="Optional context note for this order cycle"
-                  />
-                </label>
-              </div>
-
-              <div id="deliveryWarnings" class="summary-hints"></div>
-              <div id="contextHints" class="summary-hints"></div>
-              <div id="summaryHints" class="summary-hints"></div>
-              <div class="summary-stats compact-stats">
-                <div class="stat-card">
-                  <span>Total lines</span>
-                  <strong id="totalLineCount">0</strong>
-                </div>
-                <div class="stat-card">
-                  <span>Total units</span>
-                  <strong id="totalUnitCount">0</strong>
-                </div>
-                <div class="stat-card">
-                  <span>Storage warnings</span>
-                  <strong id="warningCount">0</strong>
-                </div>
-              </div>
-            </div>
-          </details>
-
-          <details class="panel summary-panel accordion-panel">
-            <summary class="accordion-summary">
-              <div>
-                <p class="section-kicker">Phase Three</p>
-                <h2>Supplier learning</h2>
-              </div>
-            </summary>
-
-            <div class="accordion-content">
-              <div class="upload-panel">
-                <label id="uploadDropzone" class="upload-dropzone">
-                  <input id="documentUploadInput" type="file" multiple accept=".pdf,image/*,.txt,.csv,.json" />
-                  <strong>Drop invoice PDFs, photos, screenshots, or supplier docs here</strong>
-                  <p>
-                    Tap to upload from camera or library on mobile. New files go into a review step before anything is learned.
-                  </p>
-                </label>
-                <div id="uploadStatus" class="helper-copy"></div>
-              </div>
-
-              <div class="learning-layout">
-                <section>
-                  <div class="section-heading compact-heading">
+            <div class="accordion-content tool-menu-content">
+              <details class="tool-menu-section">
+                <summary>Week overview</summary>
+                <div class="tool-menu-body">
+                  <div class="weather-sync-bar">
                     <div>
-                      <p class="section-kicker">Review Queue</p>
-                      <h2>Pending learning</h2>
+                      <strong id="liveWeatherStatus">Live weather not synced yet</strong>
+                      <p id="liveWeatherMeta" class="helper-copy">
+                        Manual weather setting is active until a live fetch succeeds.
+                      </p>
+                    </div>
+                    <button id="syncWeatherButton" class="ghost-button" type="button">
+                      Sync live weather
+                    </button>
+                  </div>
+
+                  <div class="delivery-facts">
+                    <div class="fact-card">
+                      <span>Available today</span>
+                      <strong id="todayAvailabilityValue">-</strong>
+                    </div>
+                    <div class="fact-card">
+                      <span>Next valid delivery</span>
+                      <strong id="nextDeliveryValue">-</strong>
+                    </div>
+                    <div class="fact-card">
+                      <span>Stock must cover</span>
+                      <strong id="coverDaysValue">-</strong>
                     </div>
                   </div>
-                  <div id="reviewQueue" class="summary-hints"></div>
-                </section>
 
-                <section>
-                  <div class="section-heading compact-heading">
-                    <div>
-                      <p class="section-kicker">Supplier Memory</p>
-                      <h2>Learned profiles</h2>
+                  <div class="category-meta">
+                    <label class="field">
+                      <span>Manual trade expectation</span>
+                      <select id="tradeExpectationSelect">
+                        <option value="normal">Normal</option>
+                        <option value="quiet">Quiet</option>
+                        <option value="busy">Busy</option>
+                        <option value="very-busy">Very busy</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Weather outlook</span>
+                      <select id="weatherModeSelect">
+                        <option value="neutral">Typical Semaphore weather</option>
+                        <option value="hot">Hot / warm</option>
+                        <option value="cold">Cold / wet / windy</option>
+                        <option value="severe">Severe weather warning</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Local event impact</span>
+                      <select id="eventImpactSelect">
+                        <option value="none">No known event</option>
+                        <option value="local">Local activity</option>
+                        <option value="major">Major event</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Event name</span>
+                      <input id="eventNameInput" type="text" placeholder="Semaphore Street Fair" />
+                    </label>
+                    <label class="field">
+                      <span>Supplier note</span>
+                      <input
+                        id="orderNotesInput"
+                        type="text"
+                        placeholder="Optional note"
+                      />
+                    </label>
+                    <label class="field">
+                      <span>Category demand lean</span>
+                      <select id="categoryDemandSelect">
+                        <option value="steady">Steady week</option>
+                        <option value="busy">Busy week</option>
+                        <option value="quiet">Quiet week</option>
+                      </select>
+                    </label>
+                    <label class="field field-wide">
+                      <span>Weather / event note</span>
+                      <input
+                        id="contextNoteInput"
+                        type="text"
+                        placeholder="Optional context note for this order cycle"
+                      />
+                    </label>
+                  </div>
+
+                  <div id="deliveryWarnings" class="summary-hints"></div>
+                  <div id="contextHints" class="summary-hints"></div>
+                  <div id="summaryHints" class="summary-hints"></div>
+                  <div class="summary-stats compact-stats">
+                    <div class="stat-card">
+                      <span>Total lines</span>
+                      <strong id="totalLineCount">0</strong>
+                    </div>
+                    <div class="stat-card">
+                      <span>Total units</span>
+                      <strong id="totalUnitCount">0</strong>
+                    </div>
+                    <div class="stat-card">
+                      <span>Storage warnings</span>
+                      <strong id="warningCount">0</strong>
                     </div>
                   </div>
-                  <div id="supplierMemoryList" class="summary-hints"></div>
-                </section>
-              </div>
+                </div>
+              </details>
+
+              <details class="tool-menu-section">
+                <summary>Supplier learning</summary>
+                <div class="tool-menu-body">
+                  <div class="upload-panel">
+                    <label id="uploadDropzone" class="upload-dropzone">
+                      <input id="documentUploadInput" type="file" multiple accept=".pdf,image/*,.txt,.csv,.json" />
+                      <strong>Drop invoice PDFs, photos, screenshots, or supplier docs here</strong>
+                      <p>
+                        Tap to upload from camera or library on mobile. New files go into a review step before anything is learned.
+                      </p>
+                    </label>
+                    <div id="uploadStatus" class="helper-copy"></div>
+                  </div>
+
+                  <div class="learning-layout">
+                    <section>
+                      <div class="section-heading compact-heading">
+                        <div>
+                          <p class="section-kicker">Review Queue</p>
+                          <h2>Pending learning</h2>
+                        </div>
+                      </div>
+                      <div id="reviewQueue" class="summary-hints"></div>
+                    </section>
+
+                    <section>
+                      <div class="section-heading compact-heading">
+                        <div>
+                          <p class="section-kicker">Supplier Memory</p>
+                          <h2>Learned profiles</h2>
+                        </div>
+                      </div>
+                      <div id="supplierMemoryList" class="summary-hints"></div>
+                    </section>
+                  </div>
+                </div>
+              </details>
             </div>
           </details>
         </section>

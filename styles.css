@@ -160,6 +160,15 @@ textarea {
     linear-gradient(180deg, rgba(40, 35, 31, 0.95), rgba(24, 22, 20, 0.95));
 }
 
+.auth-panel.compact-auth {
+  gap: 8px;
+}
+
+.compact-auth .auth-grid,
+.compact-auth .auth-actions {
+  display: none;
+}
+
 .auth-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -360,6 +369,37 @@ textarea {
   cursor: pointer;
   color: var(--text);
   font-weight: 600;
+}
+
+.quiet-menu-panel {
+  margin-top: 10px;
+}
+
+.tool-menu-content {
+  display: grid;
+  gap: 12px;
+}
+
+.tool-menu-section {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 0 14px;
+}
+
+.tool-menu-section summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 0;
+  font-weight: 600;
+}
+
+.tool-menu-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.tool-menu-body {
+  padding: 0 0 16px;
 }
 
 .checklist-empty-card {
