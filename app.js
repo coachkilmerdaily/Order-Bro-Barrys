@@ -444,7 +444,8 @@ function renderAuthPanel() {
     section.classList.toggle("hidden", locked);
   });
   refs.stockPanel.classList.toggle("hidden", locked || !getActiveCategory());
-  refs.authPanel?.classList.toggle("compact-auth", !locked);
+  refs.authPanel?.classList.toggle("hidden", !locked);
+  refs.authPanel?.classList.remove("compact-auth");
 
   if (!supabaseClient) {
     refs.authStatus.textContent = "Sync setup is loading.";
@@ -2581,16 +2582,32 @@ function getDefaultAppState() {
 
 function hydrateParsedState(parsed) {
   const fallback = getDefaultAppState();
+  const savedCategoriesById = new Map(
+    Array.isArray(parsed.categories)
+      ? parsed.categories
+          .filter((category) => category && category.id)
+          .map((category) => [category.id, category])
+      : []
+  );
+
   return {
     context: { ...defaultContext, ...(parsed.context || {}) },
-    categories: categorySeeds.map((seed, index) => {
-      const saved = parsed.categories?.[index] || {};
+    categories: categorySeeds.map((seed) => {
+      const saved = savedCategoriesById.get(seed.id) || {};
+      const savedItemsById = new Map(
+        Array.isArray(saved.items)
+          ? saved.items
+              .filter((item) => item && item.id)
+              .map((item) => [item.id, item])
+          : []
+      );
+
       return {
         ...structuredClone(seed),
         ...saved,
-        items: seed.items.map((seedItem, itemIndex) => ({
+        items: seed.items.map((seedItem) => ({
           ...structuredClone(seedItem),
-          ...((saved.items || [])[itemIndex] || {})
+          ...(savedItemsById.get(seedItem.id) || {})
         }))
       };
     }),
