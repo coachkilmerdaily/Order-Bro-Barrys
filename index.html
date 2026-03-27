@@ -60,7 +60,7 @@
             <div>
               <p class="section-kicker">Today</p>
               <h2>Today's ordering checklist</h2>
-              <p class="section-note">Work through the suppliers due today. Once a supplier is added to the order list for tomorrow, it can be marked off as done.</p>
+              <p class="section-note">Work through the suppliers due today, enter what is on hand, then mark each supplier checked.</p>
             </div>
           </div>
           <div id="categoryGrid" class="category-grid"></div>
@@ -69,82 +69,6 @@
             <summary>All suppliers</summary>
             <div id="allCategoryGrid" class="category-grid compact-category-grid"></div>
           </details>
-        </section>
-
-        <section class="panel dashboard-panel order-list-panel">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker">Tomorrow</p>
-              <h2>Order List for Tomorrow</h2>
-              <p class="section-note">This is the final list you build today for tomorrow's ordering and manager handoff.</p>
-            </div>
-          </div>
-
-          <div id="todayOrderList" class="summary-preview empty-state">
-            Add a supplier order from the drawer and it will appear here for tomorrow.
-          </div>
-
-          <div class="manager-actions">
-            <label class="field">
-              <span>Manager mobile</span>
-              <input id="managerPhoneInput" type="tel" placeholder="0400 000 000" />
-            </label>
-            <label class="field">
-              <span>Manager email</span>
-              <input id="managerEmailInput" type="email" placeholder="manager@example.com" />
-            </label>
-          </div>
-
-          <div class="manager-actions-buttons">
-            <button id="textManagerButton" class="ghost-button" type="button">
-              Text to manager
-            </button>
-            <button id="emailManagerButton" class="primary-button" type="button">
-              Email to manager
-            </button>
-          </div>
-
-          <details class="manager-delivery-settings">
-            <summary>Sending setup</summary>
-            <div class="manager-actions manager-actions-stack">
-              <label class="field">
-                <span>SMS webhook URL</span>
-                <input id="smsWebhookInput" type="url" placeholder="https://your-service.example/send-sms" />
-              </label>
-              <label class="field">
-                <span>Email webhook URL</span>
-                <input id="emailWebhookInput" type="url" placeholder="https://your-service.example/send-email" />
-              </label>
-            </div>
-            <p class="helper-copy">
-              If webhook URLs are added, the manager buttons will send in one tap. Without them, the app falls back to opening a prefilled SMS or email draft.
-            </p>
-          </details>
-        </section>
-
-        <section class="panel dashboard-panel order-list-panel">
-          <div class="section-heading">
-            <div>
-              <p class="section-kicker">Weekly</p>
-              <h2>Weekly bulk items / reminders</h2>
-              <p class="section-note">Use this for slower-moving or once-a-week jobs you do not want to forget.</p>
-            </div>
-          </div>
-
-          <div id="weeklyReminderList" class="summary-preview empty-state">
-            Send supplier items here when they are weekly reminders instead of tomorrow's order.
-          </div>
-
-          <div class="section-heading checklist-heading">
-            <div>
-              <p class="section-kicker">Checklist</p>
-              <h2>Weekly checklist</h2>
-            </div>
-          </div>
-
-          <div id="weeklyChecklist" class="summary-preview empty-state">
-            Weekly checklist items will appear here.
-          </div>
         </section>
 
         <section class="workspace">
@@ -166,45 +90,14 @@
               Tap a supplier to start entering current stock counts.
             </div>
 
-            <div class="voice-panel">
-              <button id="voiceInputButton" class="ghost-button" type="button">
-                Talk to me
+            <div class="drawer-actions">
+              <button id="markSupplierCheckedButton" class="primary-button" type="button">
+                Mark checked
               </button>
-              <p id="voiceStatus" class="helper-copy">
-                Speak stock counts for this supplier, for example: 3 beef patties, 12 chicken, 8 bacon.
-              </p>
+              <button id="clearSupplierButton" class="ghost-button" type="button">
+                Recheck supplier
+              </button>
             </div>
-
-            <section class="simple-summary">
-              <div class="section-heading compact-heading">
-                <div>
-                  <p class="section-kicker">Suggested Order</p>
-                  <h2>Ready to send</h2>
-                </div>
-                <div class="summary-send-actions">
-                  <button id="sendToWeeklyListButton" class="ghost-button" type="button">
-                    Send to weekly reminders
-                  </button>
-                  <button id="sendToOrderListButton" class="primary-button" type="button">
-                    Add to tomorrow list
-                  </button>
-                </div>
-              </div>
-              <div id="summaryPreview" class="summary-preview empty-state">
-                Enter current stock to generate the order.
-              </div>
-              <div class="drawer-actions">
-                <button id="clearSupplierButton" class="ghost-button" type="button">
-                  Recheck supplier
-                </button>
-              </div>
-              <textarea
-                id="summaryOutput"
-                class="summary-output hidden"
-                readonly
-                spellcheck="false"
-              ></textarea>
-            </section>
             </article>
           </div>
 
@@ -217,6 +110,88 @@
             </summary>
 
             <div class="accordion-content tool-menu-content">
+              <details class="tool-menu-section">
+                <summary>Order handoff</summary>
+                <div class="tool-menu-body">
+                  <div class="section-heading compact-heading">
+                    <div>
+                      <p class="section-kicker">Tomorrow</p>
+                      <h2>Order List for Tomorrow</h2>
+                      <p class="section-note">Keep the manager handoff here when you are ready to use that workflow.</p>
+                    </div>
+                  </div>
+
+                  <div id="todayOrderList" class="summary-preview empty-state">
+                    Tomorrow's handoff list will appear here.
+                  </div>
+
+                  <div class="manager-actions">
+                    <label class="field">
+                      <span>Manager mobile</span>
+                      <input id="managerPhoneInput" type="tel" placeholder="0400 000 000" />
+                    </label>
+                    <label class="field">
+                      <span>Manager email</span>
+                      <input id="managerEmailInput" type="email" placeholder="manager@example.com" />
+                    </label>
+                  </div>
+
+                  <div class="manager-actions-buttons">
+                    <button id="textManagerButton" class="ghost-button" type="button">
+                      Text to manager
+                    </button>
+                    <button id="emailManagerButton" class="primary-button" type="button">
+                      Email to manager
+                    </button>
+                  </div>
+
+                  <details class="manager-delivery-settings">
+                    <summary>Sending setup</summary>
+                    <div class="manager-actions manager-actions-stack">
+                      <label class="field">
+                        <span>SMS webhook URL</span>
+                        <input id="smsWebhookInput" type="url" placeholder="https://your-service.example/send-sms" />
+                      </label>
+                      <label class="field">
+                        <span>Email webhook URL</span>
+                        <input id="emailWebhookInput" type="url" placeholder="https://your-service.example/send-email" />
+                      </label>
+                    </div>
+                    <p class="helper-copy">
+                      If webhook URLs are added, the manager buttons will send in one tap. Without them, the app falls back to opening a prefilled SMS or email draft.
+                    </p>
+                  </details>
+                </div>
+              </details>
+
+              <details class="tool-menu-section">
+                <summary>Weekly planning</summary>
+                <div class="tool-menu-body">
+                  <div class="section-heading compact-heading">
+                    <div>
+                      <p class="section-kicker">Weekly</p>
+                      <h2>Weekly bulk items / reminders</h2>
+                      <p class="section-note">Keep slower-moving reminders here so the main checklist stays clean.</p>
+                    </div>
+                  </div>
+
+                  <div id="weeklyReminderList" class="summary-preview empty-state">
+                    Weekly reminder items will appear here.
+                  </div>
+
+                  <div class="section-heading checklist-heading">
+                    <div>
+                      <p class="section-kicker">Checklist</p>
+                      <h2>Weekly checklist</h2>
+                    </div>
+                  </div>
+
+                  <div id="weeklyChecklist" class="summary-preview empty-state">
+                    Weekly checklist items will appear here.
+                  </div>
+                </div>
+              </details>
+
               <details class="tool-menu-section">
                 <summary>Week overview</summary>
                 <div class="tool-menu-body">

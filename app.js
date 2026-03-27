@@ -3,7 +3,6 @@ const LEGACY_STORAGE_KEY = "barrys-burgers-ordering-brain-v1";
 const ADELAIDE_TIMEZONE = "Australia/Adelaide";
 const STORE_LOCATION = "13 Semaphore Road, Semaphore, South Australia 5091";
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const SPEECH_RECOGNITION = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 const SUPABASE_STATE_ROW_ID = "barrys-main";
 
 const southAustraliaHolidays2026 = [
@@ -292,9 +291,6 @@ const categorySeeds = [
 const defaultSupplierMemory = buildDefaultSupplierMemory();
 const appState = loadState();
 let activeCategoryId = null;
-let speechRecognition = null;
-let isListening = false;
-let voiceStatusMessage = "";
 let clockTimer = null;
 let supabaseClient = null;
 let syncReady = false;
@@ -322,6 +318,7 @@ const refs = {
   categoryTitle: document.getElementById("categoryTitle"),
   categorySubtext: document.getElementById("categorySubtext"),
   backToSuppliersButton: document.getElementById("backToSuppliersButton"),
+  markSupplierCheckedButton: document.getElementById("markSupplierCheckedButton"),
   tradeExpectationSelect: document.getElementById("tradeExpectationSelect"),
   weatherModeSelect: document.getElementById("weatherModeSelect"),
   eventImpactSelect: document.getElementById("eventImpactSelect"),
@@ -338,11 +335,6 @@ const refs = {
   orderNotesInput: document.getElementById("orderNotesInput"),
   deliveryWarnings: document.getElementById("deliveryWarnings"),
   itemTable: document.getElementById("itemTable"),
-  voiceInputButton: document.getElementById("voiceInputButton"),
-  voiceStatus: document.getElementById("voiceStatus"),
-  summaryOutput: document.getElementById("summaryOutput"),
-  sendToOrderListButton: document.getElementById("sendToOrderListButton"),
-  sendToWeeklyListButton: document.getElementById("sendToWeeklyListButton"),
   clearSupplierButton: document.getElementById("clearSupplierButton"),
   todayOrderList: document.getElementById("todayOrderList"),
   weeklyReminderList: document.getElementById("weeklyReminderList"),
@@ -361,7 +353,6 @@ const refs = {
   totalUnitCount: document.getElementById("totalUnitCount"),
   warningCount: document.getElementById("warningCount"),
   summaryHints: document.getElementById("summaryHints"),
-  summaryPreview: document.getElementById("summaryPreview"),
   documentUploadInput: document.getElementById("documentUploadInput"),
   uploadDropzone: document.getElementById("uploadDropzone"),
   uploadStatus: document.getElementById("uploadStatus"),
@@ -390,20 +381,16 @@ function init() {
   refs.orderNotesInput.addEventListener("input", onCategoryMetaChange);
   refs.backToSuppliersButton.addEventListener("click", () => {
     activeCategoryId = null;
-    stopVoiceRecognition();
     render();
   });
   refs.stockDrawerScrim.addEventListener("click", () => {
     activeCategoryId = null;
-    stopVoiceRecognition();
     render();
   });
   refs.stockDrawerPanel.addEventListener("touchstart", onDrawerTouchStart, { passive: true });
   refs.stockDrawerPanel.addEventListener("touchend", onDrawerTouchEnd, { passive: true });
-  refs.sendToOrderListButton.addEventListener("click", sendActiveSupplierToOrderList);
-  refs.sendToWeeklyListButton.addEventListener("click", sendActiveSupplierToWeeklyList);
+  refs.markSupplierCheckedButton.addEventListener("click", markActiveSupplierChecked);
   refs.clearSupplierButton.addEventListener("click", clearActiveSupplier);
-  refs.voiceInputButton.addEventListener("click", onVoiceInputButtonClick);
   refs.managerPhoneInput.addEventListener("input", onManagerContactChange);
   refs.managerEmailInput.addEventListener("input", onManagerContactChange);
   refs.smsWebhookInput.addEventListener("input", onManagerContactChange);
@@ -429,7 +416,6 @@ function render() {
   renderCategoryGrid(today);
   renderAllCategoryGrid();
   renderActiveCategory(today);
-  renderSummary(today);
   renderTodayOrderList(today);
   renderWeeklyReminderList();
   renderWeeklyChecklist(today);
@@ -460,7 +446,7 @@ function renderAuthPanel() {
   refs.authSignOutButton.disabled = !syncSession;
 
   if (syncSession?.user?.email) {
-    refs.authStatus.textContent = `Synced as ${syncSession.user.email}. Changes now save to the shared Barry's data.`;
+    refs.authStatus.textContent = `Synced as ${syncSession.user.email}.`;
     refs.authEmailInput.value = syncSession.user.email;
     return;
   }
@@ -675,7 +661,7 @@ function renderCategoryGrid(today) {
     return;
   }
 
-  refs.categoryGrid.className = "category-grid";
+  refs.categoryGrid.className = "category-grid single-column-grid";
   dayPlan.entries.forEach(({ category, status }) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -687,13 +673,13 @@ function renderCategoryGrid(today) {
       <div class="category-card-top">
         <div>
           <h3>${category.name}</h3>
-          <p>${statusLabel}</p>
+          <p>${category.items.length} item${category.items.length === 1 ? "" : "s"} to check</p>
         </div>
         <span class="category-card-count">${supplierMark}</span>
       </div>
       <div class="category-card-meta">
         <span class="category-card-accent">${supplierAccent}</span>
-        <span class="category-card-caption">${status === "done" ? "Done for today" : "Open stock list"}</span>
+        <span class="category-card-caption status-${status}">${status === "done" ? "Checked for today" : status === "in-progress" ? "In progress" : "Ready to check"}</span>
       </div>
     `;
     button.addEventListener("click", () => {
@@ -730,6 +716,9 @@ function renderAllCategoryGrid() {
 
 function renderActiveCategory(today) {
   const category = getActiveCategory();
+  const checklist = getTodayOrderChecklist(today);
+  const checklistEntry = checklist.entries?.find((entry) => entry.category.id === category?.id);
+  const isChecked = checklistEntry?.status === "done";
   if (!category) {
     refs.stockPanel.classList.add("hidden");
     refs.itemTable.className = "item-table empty-state";
@@ -740,32 +729,21 @@ function renderActiveCategory(today) {
     refs.todayAvailabilityValue.textContent = "-";
     refs.nextDeliveryValue.textContent = "-";
     refs.coverDaysValue.textContent = "-";
-    refs.voiceInputButton.disabled = true;
-    refs.voiceStatus.textContent = "Open a supplier, then tap Talk to me to fill stock by voice.";
-    refs.voiceInputButton.textContent = "Talk to me";
-    refs.sendToOrderListButton.disabled = true;
-    refs.sendToWeeklyListButton.disabled = true;
+    refs.markSupplierCheckedButton.disabled = true;
+    refs.markSupplierCheckedButton.textContent = "Mark checked";
     refs.clearSupplierButton.disabled = true;
-    document.querySelector(".voice-panel")?.classList.remove("listening");
     return;
   }
 
   refs.stockPanel.classList.remove("hidden");
-  refs.voiceInputButton.disabled = false;
-  refs.voiceInputButton.textContent = isListening ? "Listening..." : "Talk to me";
-  const alreadyInTomorrowList = Boolean(appState.todayOrderList?.[category.id]?.lines?.length);
-  refs.sendToOrderListButton.disabled = false;
-  refs.sendToWeeklyListButton.disabled = false;
+  refs.markSupplierCheckedButton.disabled = false;
+  refs.markSupplierCheckedButton.textContent = isChecked ? "Checked for today" : "Mark checked";
   refs.clearSupplierButton.disabled = false;
-  refs.sendToOrderListButton.textContent = alreadyInTomorrowList ? "Added to tomorrow list" : "Add to tomorrow list";
-  refs.sendToOrderListButton.classList.toggle("sent-state", alreadyInTomorrowList);
-  refs.voiceStatus.textContent = voiceStatusMessage || (isListening
-    ? `Listening for ${category.name}. Say counts like 3 beef patties, 12 chicken, 8 bacon.`
-    : `Speak stock counts for ${category.name}. Example: 3 beef patties, 12 chicken, 8 bacon.`);
-  document.querySelector(".voice-panel")?.classList.toggle("listening", isListening);
   const plan = getSupplierPlan(category, today);
   refs.categoryTitle.textContent = category.name;
-  refs.categorySubtext.textContent = `Next delivery ${plan.nextDeliveryLabel}`;
+  refs.categorySubtext.textContent = isChecked
+    ? `Checked off for ${today.dayName}. Next delivery ${plan.nextDeliveryLabel}.`
+    : `Enter what is on hand, then mark this supplier checked. Next delivery ${plan.nextDeliveryLabel}.`;
   refs.todayAvailabilityValue.textContent = plan.availableToday ? `Yes - ${today.dayName}` : `No - ${today.dayName}`;
   refs.nextDeliveryValue.textContent = plan.nextDeliveryLabel;
   refs.coverDaysValue.textContent = `${plan.coverDays} day${plan.coverDays === 1 ? "" : "s"}`;
@@ -826,9 +804,8 @@ function renderActiveCategory(today) {
     row.querySelector(`[data-item-input="${item.id}"]`).addEventListener("input", (event) => {
       const nextValue = Number.parseInt(event.target.value, 10);
       item.currentStock = Number.isFinite(nextValue) && nextValue >= 0 ? nextValue : 0;
-      delete appState.supplierRecheckState[category.id];
+      setOrderChecklistDone(getTodayInfo().isoDate, category.id, false);
       persistState();
-      renderSummary(today);
     });
 
     row.querySelector(`[data-item-input="${item.id}"]`).addEventListener("change", () => {
@@ -837,117 +814,6 @@ function renderActiveCategory(today) {
 
     refs.itemTable.appendChild(row);
   });
-}
-
-function renderSummary(today) {
-  const activeCategory = getActiveCategory();
-  const summaryGroups = activeCategory
-    && !appState.supplierRecheckState?.[activeCategory.id]
-    ? [activeCategory]
-        .map((category) => {
-          const plan = getSupplierPlan(category, today);
-          const lines = category.items
-            .map((item) => ({ item, calc: calculateRecommendation(item, category, plan, appState.context) }))
-            .filter(({ calc }) => calc.suggestedOrder > 0);
-          return { category, plan, lines };
-        })
-        .filter((group) => group.lines.length > 0)
-    : [];
-
-  const textLines = [
-    "Barry's Burgers Semaphore order summary",
-    `Planning date: ${formatLongDate(today.date)}`,
-    `Store: ${STORE_LOCATION}`,
-    `Manual trade setting: ${labelForTradeExpectation(appState.context.tradeExpectation)}`,
-    `Weather: ${weatherProfiles[appState.context.weatherMode].label}`,
-    `Event: ${eventSummaryLine(appState.context)}`,
-    ""
-  ];
-  const hints = [];
-  let totalLineCount = 0;
-  let totalUnitCount = 0;
-  let totalWarnings = 0;
-
-  if (summaryGroups.length === 0) {
-    textLines.push("No order required right now.");
-    refs.summaryPreview.className = "summary-preview empty-state";
-    refs.summaryPreview.textContent = activeCategory
-      ? appState.supplierRecheckState?.[activeCategory.id]
-        ? "Re-enter the stock counts for this supplier."
-        : "No order required right now."
-      : "Choose a supplier, enter current stock, and the order will appear here.";
-  }
-
-  summaryGroups.forEach(({ category, plan, lines }) => {
-    textLines.push(category.supplier);
-    textLines.push(`Next valid delivery: ${plan.nextDeliveryLabel}`);
-    textLines.push(`Today availability: ${plan.availableToday ? "Available" : "Unavailable"}`);
-    if (plan.holidayWarning) {
-      textLines.push(`Holiday warning: ${plan.holidayWarning}`);
-    }
-    if (category.notes) {
-      textLines.push(`Note: ${category.notes}`);
-    }
-
-    lines.forEach(({ item, calc }) => {
-      const supplierLabel = getSupplierOrderLabel(category.supplier, item);
-      textLines.push(`- ${supplierLabel}: order ${calc.suggestedOrder} ${getOrderedUnit(item)} (counted stock ${item.currentStock} ${getCountedUnit(item)}, base ${calc.baseCoverNeed}, adjusted ${calc.adjustedCoverNeed})`);
-      if (calc.capReason) {
-        textLines.push(`  Storage: ${calc.capReason}`);
-      }
-      if (calc.overCapacity) {
-        textLines.push(`  Storage: Over capacity now (${calc.storageConstraintLabel}).`);
-      }
-      calc.adjustments.forEach((adjustment) => {
-        textLines.push(`  ${adjustment.title}: ${adjustment.body}`);
-      });
-      totalLineCount += 1;
-      totalUnitCount += calc.suggestedOrder;
-      if (calc.warning) {
-        totalWarnings += 1;
-      }
-    });
-
-    textLines.push("");
-
-    const warningItems = lines.filter(({ calc }) => calc.warning);
-    if (plan.holidayWarning || warningItems.length) {
-      hints.push({
-        title: `${category.supplier} needs attention`,
-        body: [plan.holidayWarning, ...warningItems.map(({ item, calc }) => `${item.name}: ${calc.warning}`)].filter(Boolean).join(" ")
-      });
-    }
-  });
-
-  if (!hints.length) {
-    hints.push({
-      title: "Context layer is active",
-      body: "Manual trade expectation, weather context, and event context are adjusting only relevant lines while keeping supplier timing as the foundation."
-    });
-  }
-
-  refs.summaryOutput.value = textLines.join("\n");
-  refs.totalLineCount.textContent = String(totalLineCount);
-  refs.totalUnitCount.textContent = String(totalUnitCount);
-  refs.warningCount.textContent = String(totalWarnings);
-  if (summaryGroups.length) {
-    const previewLines = summaryGroups[0].lines
-        .map(({ item, calc }) => {
-          const cappedText = calc.capReason ? " (capped by storage)" : "";
-          return `<div class="summary-line"><strong>${getSupplierOrderLabel(summaryGroups[0].category.supplier, item)}</strong><span>${calc.suggestedOrder} ${getOrderedUnit(item)}${cappedText}</span></div>`;
-        })
-      .join("");
-    refs.summaryPreview.className = "summary-preview";
-    refs.summaryPreview.innerHTML = previewLines;
-  }
-  refs.summaryHints.innerHTML = hints
-    .map((hint) => `
-      <div class="hint-card">
-        <strong>${hint.title}</strong>
-        <p>${hint.body}</p>
-      </div>
-    `)
-    .join("");
 }
 
 function renderTodayOrderList(today) {
@@ -962,7 +828,7 @@ function renderTodayOrderList(today) {
 
   if (!entries.length) {
     refs.todayOrderList.className = "summary-preview empty-state";
-    refs.todayOrderList.textContent = "Add a supplier order from the drawer and it will appear here in the order list for tomorrow.";
+    refs.todayOrderList.textContent = "Tomorrow's handoff list will appear here when that workflow is in use.";
     return;
   }
 
@@ -988,7 +854,7 @@ function renderWeeklyReminderList() {
 
   if (!entries.length) {
     refs.weeklyReminderList.className = "summary-preview empty-state";
-    refs.weeklyReminderList.textContent = "Send supplier items here when they are weekly reminders instead of tomorrow's order.";
+    refs.weeklyReminderList.textContent = "Weekly reminder items will appear here.";
     return;
   }
 
@@ -1028,32 +894,69 @@ function renderWeeklyChecklist(today) {
 }
 
 function renderChecklistPopup(today) {
-  if (!syncSession) {
-    refs.checklistPopup.classList.add("hidden");
-    refs.checklistPopupList.innerHTML = "";
+  if (!refs.checklistPopup || !refs.checklistPopupList) {
     return;
   }
 
-  const dueToday = getWeeklyChecklistItems(today).filter((item) => item.isToday && !item.completed);
-  const popupKey = `weekly-checklist-${today.isoDate}`;
-  const overdueActive = dueToday.some((item) => item.overdue);
+  refs.checklistPopup.classList.add("hidden");
+  refs.checklistPopupList.innerHTML = "";
+}
 
-  if (!dueToday.length || (appState.checklistPopupDismissed[popupKey] && !overdueActive)) {
-    refs.checklistPopup.classList.add("hidden");
-    refs.checklistPopupList.innerHTML = "";
+function markActiveSupplierChecked() {
+  const category = getActiveCategory();
+  if (!category) {
     return;
   }
 
-  refs.checklistPopup.classList.remove("hidden");
-  refs.checklistPopupList.innerHTML = dueToday
-    .map((item) => `
-      <div class="checklist-item today">
-        <strong>${item.title}</strong>
-        <span>${item.note}</span>
-        ${item.status ? `<span class="checklist-status">${item.status}</span>` : ""}
-      </div>
-    `)
-    .join("");
+  const today = getTodayInfo();
+  setOrderChecklistDone(today.isoDate, category.id, true);
+  persistState();
+  activeCategoryId = null;
+  render();
+}
+
+function dismissChecklistPopup() {
+  if (!refs.checklistPopup) {
+    return;
+  }
+
+  refs.checklistPopup.classList.add("hidden");
+}
+
+function onDrawerTouchStart(event) {
+  const touch = event.changedTouches?.[0];
+  if (!touch) {
+    return;
+  }
+  drawerTouchStartY = touch.clientY;
+  drawerTouchStartX = touch.clientX;
+}
+
+function onDrawerTouchEnd(event) {
+  const touch = event.changedTouches?.[0];
+  if (!touch || !activeCategoryId) {
+    return;
+  }
+
+  const deltaY = touch.clientY - drawerTouchStartY;
+  const deltaX = Math.abs(touch.clientX - drawerTouchStartX);
+  if (refs.stockDrawerPanel.scrollTop <= 10 && deltaY > 110 && deltaX < 80) {
+    activeCategoryId = null;
+    render();
+  }
+}
+
+function onWeeklyChecklistToggle(event) {
+  const checklistId = event.target.dataset.checklistId;
+  if (!checklistId) {
+    return;
+  }
+
+  const today = getTodayInfo();
+  const completionKey = `${today.isoDate}:${checklistId}`;
+  appState.weeklyChecklistCompletions[completionKey] = event.target.checked;
+  persistState();
+  render();
 }
 
 function calculateRecommendation(item, category, plan, context) {
@@ -1563,7 +1466,6 @@ function sendActiveSupplierToOrderList() {
 
   if (!lines.length) {
     delete appState.todayOrderList[category.id];
-    voiceStatusMessage = `No order needed for ${category.name} right now.`;
     persistState();
     render();
     return;
@@ -1574,9 +1476,7 @@ function sendActiveSupplierToOrderList() {
     createdAt: new Date().toISOString(),
     lines
   };
-  delete appState.supplierRecheckState[category.id];
   setOrderChecklistDone(getTodayInfo().isoDate, category.id, true);
-  voiceStatusMessage = `${category.name} added to the order list for tomorrow.`;
   persistState();
   render();
 }
@@ -1601,7 +1501,6 @@ function sendActiveSupplierToWeeklyList() {
 
   if (!lines.length) {
     delete appState.weeklyReminderList[category.id];
-    voiceStatusMessage = `No weekly reminder items for ${category.name} right now.`;
     persistState();
     render();
     return;
@@ -1612,7 +1511,6 @@ function sendActiveSupplierToWeeklyList() {
     createdAt: new Date().toISOString(),
     lines
   };
-  voiceStatusMessage = `${category.name} added to weekly reminders.`;
   persistState();
   render();
 }
@@ -1628,9 +1526,7 @@ function clearActiveSupplier() {
   });
   delete appState.todayOrderList[category.id];
   delete appState.weeklyReminderList[category.id];
-  appState.supplierRecheckState[category.id] = true;
   setOrderChecklistDone(getTodayInfo().isoDate, category.id, false);
-  voiceStatusMessage = `${category.name} reset for a fresh check.`;
   persistState();
   render();
 }
@@ -1647,8 +1543,7 @@ async function textManager() {
   const body = buildManagerOrderMessage();
   const phone = appState.managerContact.phone.replace(/\s+/g, "");
   if (!phone) {
-    voiceStatusMessage = "Add the manager mobile number first.";
-    render();
+    window.alert("Add the manager mobile number first.");
     return;
   }
 
@@ -1659,8 +1554,7 @@ async function textManager() {
       message: body,
       orderList: getSanitizedTodayOrderEntries()
     });
-    voiceStatusMessage = result;
-    render();
+    window.alert(result);
     return;
   }
 
@@ -1672,8 +1566,7 @@ async function emailManager() {
   const body = buildManagerOrderMessage();
   const email = appState.managerContact.email.trim();
   if (!email) {
-    voiceStatusMessage = "Add the manager email first.";
-    render();
+    window.alert("Add the manager email first.");
     return;
   }
 
@@ -1686,8 +1579,7 @@ async function emailManager() {
       message: body,
       orderList: getSanitizedTodayOrderEntries()
     });
-    voiceStatusMessage = result;
-    render();
+    window.alert(result);
     return;
   }
 
@@ -1855,163 +1747,6 @@ function setOrderChecklistDone(isoDate, categoryId, value) {
   delete appState.dailyOrderChecklist[isoDate][categoryId];
 }
 
-function dismissChecklistPopup() {
-  const today = getTodayInfo();
-  const popupKey = `weekly-checklist-${today.isoDate}`;
-  appState.checklistPopupDismissed[popupKey] = true;
-  persistState();
-  render();
-}
-
-function onDrawerTouchStart(event) {
-  const touch = event.changedTouches?.[0];
-  if (!touch) {
-    return;
-  }
-  drawerTouchStartY = touch.clientY;
-  drawerTouchStartX = touch.clientX;
-}
-
-function onDrawerTouchEnd(event) {
-  const touch = event.changedTouches?.[0];
-  if (!touch || !activeCategoryId) {
-    return;
-  }
-
-  const deltaY = touch.clientY - drawerTouchStartY;
-  const deltaX = Math.abs(touch.clientX - drawerTouchStartX);
-  if (refs.stockDrawerPanel.scrollTop <= 10 && deltaY > 110 && deltaX < 80) {
-    activeCategoryId = null;
-    stopVoiceRecognition();
-    render();
-  }
-}
-
-function onWeeklyChecklistToggle(event) {
-  const checklistId = event.target.dataset.checklistId;
-  if (!checklistId) {
-    return;
-  }
-
-  const today = getTodayInfo();
-  const completionKey = `${today.isoDate}:${checklistId}`;
-  appState.weeklyChecklistCompletions[completionKey] = event.target.checked;
-  persistState();
-  render();
-}
-
-function onVoiceInputButtonClick() {
-  if (isListening) {
-    stopVoiceRecognition();
-    render();
-    return;
-  }
-
-  startVoiceRecognition();
-}
-
-function startVoiceRecognition() {
-  const category = getActiveCategory();
-  if (!category) {
-    return;
-  }
-
-  if (!SPEECH_RECOGNITION) {
-    voiceStatusMessage = "Voice input is not supported in this browser.";
-    render();
-    return;
-  }
-
-  stopVoiceRecognition();
-  speechRecognition = new SPEECH_RECOGNITION();
-  speechRecognition.lang = "en-AU";
-  speechRecognition.interimResults = false;
-  speechRecognition.maxAlternatives = 1;
-
-  speechRecognition.onstart = () => {
-    isListening = true;
-    voiceStatusMessage = "";
-    render();
-  };
-
-  speechRecognition.onresult = (event) => {
-    const transcript = event.results?.[0]?.[0]?.transcript || "";
-    const applied = applyVoiceTranscriptToCategory(transcript, category);
-    persistState();
-    isListening = false;
-    speechRecognition = null;
-    voiceStatusMessage = applied.message;
-    render();
-  };
-
-  speechRecognition.onerror = (event) => {
-    isListening = false;
-    speechRecognition = null;
-    voiceStatusMessage = `Voice input failed${event?.error ? `: ${event.error}` : "."}`;
-    render();
-  };
-
-  speechRecognition.onend = () => {
-    isListening = false;
-    speechRecognition = null;
-    render();
-  };
-
-  speechRecognition.start();
-}
-
-function stopVoiceRecognition() {
-  if (!speechRecognition) {
-    isListening = false;
-    return;
-  }
-
-  speechRecognition.onend = null;
-  speechRecognition.stop();
-  speechRecognition = null;
-  isListening = false;
-}
-
-function applyVoiceTranscriptToCategory(transcript, category) {
-  const normalizedTranscript = normalizeSpeechText(transcript);
-  const clauses = normalizedTranscript
-    .split(/,|\band\b|\n/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-  const aliases = buildCategoryVoiceAliases(category);
-  const applied = [];
-
-  clauses.forEach((clause) => {
-    const quantityMatch = clause.match(/\b\d+\b/);
-    if (!quantityMatch) {
-      return;
-    }
-
-    const quantity = Number.parseInt(quantityMatch[0], 10);
-    if (!Number.isFinite(quantity)) {
-      return;
-    }
-
-    const match = aliases.find((entry) => clause.includes(entry.alias));
-    if (!match) {
-      return;
-    }
-
-    match.item.currentStock = quantity;
-    applied.push(`${match.item.name} ${quantity}`);
-  });
-
-  if (!applied.length) {
-    return {
-      message: `Couldn't match any stock lines from: "${transcript}".`
-    };
-  }
-
-  return {
-    message: `Updated ${applied.join(", ")} from voice input.`
-  };
-}
-
 function resetState() {
   if (!window.confirm("Reset all counts, live weather status, and supplier memory back to the sample Barry's Burgers data?")) {
     return;
@@ -2027,7 +1762,6 @@ function resetState() {
     weeklyReminderList: {},
     managerContact: defaultManagerContact,
     dailyOrderChecklist: {},
-    supplierRecheckState: {},
     weeklyChecklistCompletions: {},
     checklistPopupDismissed: {},
     lastCycleDate: getTodayInfo().isoDate
@@ -2060,7 +1794,6 @@ function applyDailyRolloverIfNeeded() {
   appState.weeklyChecklistCompletions = {};
   appState.checklistPopupDismissed = {};
   appState.dailyOrderChecklist = {};
-  appState.supplierRecheckState = {};
   appState.lastCycleDate = today.isoDate;
   activeCategoryId = null;
   persistState();
@@ -2255,77 +1988,6 @@ function getSupplierAccent(category) {
     packaging: "Serviceware"
   };
   return accents[category.id] || category.accent || "";
-}
-
-function buildCategoryVoiceAliases(category) {
-  const supplierKey = normalizeSupplierKey(category.supplier);
-  const memory = appState.supplierMemory[supplierKey];
-  const aliases = [];
-
-  category.items.forEach((item) => {
-    aliases.push({ alias: normalizeSpeechText(item.name), item });
-
-    const simplifiedName = normalizeSpeechText(item.name.replace(/\b(beef|burger|frozen|brown|sliced|signature|soft serve|chocolate)\b/gi, " "));
-    if (simplifiedName && simplifiedName !== normalizeSpeechText(item.name)) {
-      aliases.push({ alias: simplifiedName, item });
-    }
-
-    (memory?.itemAliases || [])
-      .filter((entry) => entry.productId === item.id)
-      .forEach((entry) => {
-        aliases.push({ alias: normalizeSpeechText(entry.invoiceName), item });
-        aliases.push({ alias: normalizeSpeechText(entry.productName), item });
-      });
-  });
-
-  return aliases
-    .filter((entry) => entry.alias)
-    .sort((a, b) => b.alias.length - a.alias.length)
-    .filter((entry, index, array) => array.findIndex((candidate) => candidate.alias === entry.alias && candidate.item.id === entry.item.id) === index);
-}
-
-function normalizeSpeechText(value) {
-  const numberWords = {
-    zero: "0",
-    one: "1",
-    two: "2",
-    three: "3",
-    four: "4",
-    five: "5",
-    six: "6",
-    seven: "7",
-    eight: "8",
-    nine: "9",
-    ten: "10",
-    eleven: "11",
-    twelve: "12",
-    thirteen: "13",
-    fourteen: "14",
-    fifteen: "15",
-    sixteen: "16",
-    seventeen: "17",
-    eighteen: "18",
-    nineteen: "19",
-    twenty: "20"
-  };
-
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[.-]/g, " ")
-    .replace(/\bwe have\b/g, " ")
-    .replace(/\bthere is\b/g, " ")
-    .replace(/\bthere are\b/g, " ")
-    .replace(/\btubs of\b/g, " ")
-    .replace(/\bboxes of\b/g, " ")
-    .replace(/\bkg of\b/g, " ")
-    .replace(/\bkilos of\b/g, " ")
-    .replace(/\bkilograms of\b/g, " ")
-    .replace(/\ba\b/g, " ")
-    .replace(/\ban\b/g, " ")
-    .replace(/\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g, (match) => numberWords[match] || match)
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function buildProductOptions(selectedValue) {
@@ -2585,7 +2247,6 @@ function getDefaultAppState() {
     weeklyReminderList: {},
     managerContact: defaultManagerContact,
     dailyOrderChecklist: {},
-    supplierRecheckState: {},
     weeklyChecklistCompletions: {},
     checklistPopupDismissed: {},
     lastCycleDate: getTodayInfo().isoDate
@@ -2629,7 +2290,6 @@ function hydrateParsedState(parsed) {
     weeklyReminderList: parsed.weeklyReminderList && typeof parsed.weeklyReminderList === "object" ? parsed.weeklyReminderList : {},
     managerContact: { ...defaultManagerContact, ...(parsed.managerContact || {}) },
     dailyOrderChecklist: parsed.dailyOrderChecklist && typeof parsed.dailyOrderChecklist === "object" ? parsed.dailyOrderChecklist : {},
-    supplierRecheckState: parsed.supplierRecheckState && typeof parsed.supplierRecheckState === "object" ? parsed.supplierRecheckState : {},
     weeklyChecklistCompletions: parsed.weeklyChecklistCompletions && typeof parsed.weeklyChecklistCompletions === "object" ? parsed.weeklyChecklistCompletions : {},
     checklistPopupDismissed: parsed.checklistPopupDismissed && typeof parsed.checklistPopupDismissed === "object" ? parsed.checklistPopupDismissed : {},
     lastCycleDate: parsed.lastCycleDate || fallback.lastCycleDate
