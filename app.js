@@ -4,6 +4,7 @@ const ADELAIDE_TIMEZONE = "Australia/Adelaide";
 const STORE_LOCATION = "13 Semaphore Road, Semaphore, South Australia 5091";
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const SPEECH_RECOGNITION = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+const SUPABASE_STATE_ROW_ID = "barrys-main";
 
 const southAustraliaHolidays2026 = [
   { date: "2026-01-01", name: "New Year's Day" },
@@ -273,10 +274,21 @@ let speechRecognition = null;
 let isListening = false;
 let voiceStatusMessage = "";
 let clockTimer = null;
+let supabaseClient = null;
+let syncReady = false;
+let syncSession = null;
+let syncSaveTimer = null;
+let syncHydrating = false;
 
 const refs = {
   todayLabel: document.getElementById("todayLabel"),
   currentTimeLabel: document.getElementById("currentTimeLabel"),
+  authEmailInput: document.getElementById("authEmailInput"),
+  authPasswordInput: document.getElementById("authPasswordInput"),
+  authSignInButton: document.getElementById("authSignInButton"),
+  authSignUpButton: document.getElementById("authSignUpButton"),
+  authSignOutButton: document.getElementById("authSignOutButton"),
+  authStatus: document.getElementById("authStatus"),
   categoryGrid: document.getElementById("categoryGrid"),
   stockPanel: document.getElementById("stockPanel"),
   stockDrawerScrim: document.getElementById("stockDrawerScrim"),
@@ -337,6 +349,10 @@ function init() {
   updateHeaderClock();
   clockTimer = window.setInterval(updateHeaderClock, 30000);
 
+  refs.authEmailInput.value = defaultManagerContact.email;
+  refs.authSignInButton.addEventListener("click", onAuthSignIn);
+  refs.authSignUpButton.addEventListener("click", onAuthSignUp);
+  refs.authSignOutButton.addEventListener("click", onAuthSignOut);
   refs.tradeExpectationSelect.addEventListener("change", onContextChange);
   refs.weatherModeSelect.addEventListener("change", onContextChange);
   refs.eventImpactSelect.addEventListener("change", onContextChange);
@@ -374,10 +390,12 @@ function init() {
   refs.uploadDropzone.addEventListener("drop", onDropzoneDrop);
 
   render();
+  bootstrapSupabase();
 }
 
 function render() {
   const today = getTodayInfo();
+  renderAuthPanel();
   renderContextPanel();
   renderCategoryGrid(today);
   renderActiveCategory(today);
@@ -388,6 +406,183 @@ function render() {
   renderChecklistPopup(today);
   renderReviewQueue();
   renderSupplierMemory();
+}
+
+function renderAuthPanel() {
+  if (!supabaseClient) {
+    refs.authStatus.textContent = "Sync setup is loading.";
+    refs.authSignInButton.disabled = true;
+    refs.authSignUpButton.disabled = true;
+    refs.authSignOutButton.disabled = true;
+    return;
+  }
+
+  refs.authSignInButton.disabled = false;
+  refs.authSignUpButton.disabled = false;
+  refs.authSignOutButton.disabled = !syncSession;
+
+  if (syncSession?.user?.email) {
+    refs.authStatus.textContent = `Synced as ${syncSession.user.email}. Changes now save to the shared Barry's data.`;
+    refs.authEmailInput.value = syncSession.user.email;
+    return;
+  }
+
+  refs.authStatus.textContent = "Sign in with the shared Barry's login to sync between phone and desktop.";
+}
+
+async function bootstrapSupabase() {
+  try {
+    const config = await loadSupabaseConfig();
+    if (!config?.url || !config?.anonKey || !window.supabase?.createClient) {
+      refs.authStatus.textContent = "Supabase config was not found. Check the Vercel environment variables.";
+      render();
+      return;
+    }
+
+    supabaseClient = window.supabase.createClient(config.url, config.anonKey);
+    const { data } = await supabaseClient.auth.getSession();
+    syncSession = data.session;
+
+    supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+      syncSession = session;
+      if (session) {
+        await hydrateStateFromSupabase();
+      }
+      render();
+    });
+
+    if (syncSession) {
+      await hydrateStateFromSupabase();
+    }
+  } catch {
+    refs.authStatus.textContent = "Could not connect to Supabase yet.";
+  }
+
+  render();
+}
+
+async function loadSupabaseConfig() {
+  const response = await fetch("/api/config");
+  if (!response.ok) {
+    throw new Error("Missing config");
+  }
+  return response.json();
+}
+
+async function onAuthSignIn() {
+  if (!supabaseClient) {
+    return;
+  }
+
+  const email = refs.authEmailInput.value.trim();
+  const password = refs.authPasswordInput.value;
+  if (!email || !password) {
+    refs.authStatus.textContent = "Enter the shared email and password first.";
+    return;
+  }
+
+  refs.authStatus.textContent = "Signing in...";
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    refs.authStatus.textContent = `Sign in failed: ${error.message}`;
+    return;
+  }
+}
+
+async function onAuthSignUp() {
+  if (!supabaseClient) {
+    return;
+  }
+
+  const email = refs.authEmailInput.value.trim();
+  const password = refs.authPasswordInput.value;
+  if (!email || !password) {
+    refs.authStatus.textContent = "Enter an email and password first.";
+    return;
+  }
+
+  refs.authStatus.textContent = "Creating shared login...";
+  const { error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) {
+    refs.authStatus.textContent = `Create login failed: ${error.message}`;
+    return;
+  }
+
+  refs.authStatus.textContent = "Login created. If email confirmation is enabled in Supabase, confirm it before signing in.";
+}
+
+async function onAuthSignOut() {
+  if (!supabaseClient) {
+    return;
+  }
+
+  await supabaseClient.auth.signOut();
+  syncSession = null;
+  refs.authStatus.textContent = "Signed out of shared sync.";
+  render();
+}
+
+async function hydrateStateFromSupabase() {
+  if (!supabaseClient || !syncSession) {
+    return;
+  }
+
+  syncHydrating = true;
+  try {
+    const { data, error } = await supabaseClient
+      .from("app_state")
+      .select("payload")
+      .eq("id", SUPABASE_STATE_ROW_ID)
+      .maybeSingle();
+
+    if (error) {
+      refs.authStatus.textContent = `Sync load failed: ${error.message}`;
+      return;
+    }
+
+    if (!data?.payload) {
+      await saveStateToSupabase();
+      syncReady = true;
+      return;
+    }
+
+    const hydrated = hydrateParsedState(data.payload);
+    Object.keys(appState).forEach((key) => delete appState[key]);
+    Object.assign(appState, hydrated);
+    syncReady = true;
+  } finally {
+    syncHydrating = false;
+  }
+}
+
+function queueSupabaseSave() {
+  if (!supabaseClient || !syncSession || !syncReady || syncHydrating) {
+    return;
+  }
+
+  window.clearTimeout(syncSaveTimer);
+  syncSaveTimer = window.setTimeout(() => {
+    saveStateToSupabase();
+  }, 350);
+}
+
+async function saveStateToSupabase() {
+  if (!supabaseClient || !syncSession || syncHydrating) {
+    return;
+  }
+
+  const payload = structuredClone(appState);
+  const { error } = await supabaseClient
+    .from("app_state")
+    .upsert({
+      id: SUPABASE_STATE_ROW_ID,
+      payload,
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) {
+    refs.authStatus.textContent = `Sync save failed: ${error.message}`;
+  }
 }
 
 function renderContextPanel() {
@@ -2176,18 +2371,7 @@ function atNoon(date) {
 }
 
 function loadState() {
-  const fallback = structuredClone({
-    context: defaultContext,
-    categories: categorySeeds,
-    pendingReviews: [],
-    supplierMemory: defaultSupplierMemory,
-    todayOrderList: {},
-    weeklyReminderList: {},
-    managerContact: defaultManagerContact,
-    weeklyChecklistCompletions: {},
-    checklistPopupDismissed: {},
-    lastCycleDate: getTodayInfo().isoDate
-  });
+  const fallback = getDefaultAppState();
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -2200,28 +2384,7 @@ function loadState() {
       return fallback;
     }
 
-    return {
-      context: { ...defaultContext, ...(parsed.context || {}) },
-      categories: categorySeeds.map((seed, index) => {
-        const saved = parsed.categories[index] || {};
-        return {
-          ...structuredClone(seed),
-          ...saved,
-          items: seed.items.map((seedItem, itemIndex) => ({
-            ...structuredClone(seedItem),
-            ...((saved.items || [])[itemIndex] || {})
-          }))
-        };
-      }),
-      pendingReviews: Array.isArray(parsed.pendingReviews) ? parsed.pendingReviews : [],
-      supplierMemory: mergeSupplierMemory(parsed.supplierMemory),
-      todayOrderList: parsed.todayOrderList && typeof parsed.todayOrderList === "object" ? parsed.todayOrderList : {},
-      weeklyReminderList: parsed.weeklyReminderList && typeof parsed.weeklyReminderList === "object" ? parsed.weeklyReminderList : {},
-      managerContact: { ...defaultManagerContact, ...(parsed.managerContact || {}) },
-      weeklyChecklistCompletions: parsed.weeklyChecklistCompletions && typeof parsed.weeklyChecklistCompletions === "object" ? parsed.weeklyChecklistCompletions : {},
-      checklistPopupDismissed: parsed.checklistPopupDismissed && typeof parsed.checklistPopupDismissed === "object" ? parsed.checklistPopupDismissed : {},
-      lastCycleDate: parsed.lastCycleDate || ""
-    };
+    return hydrateParsedState(parsed);
   } catch {
     return fallback;
   }
@@ -2229,4 +2392,46 @@ function loadState() {
 
 function persistState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  queueSupabaseSave();
+}
+
+function getDefaultAppState() {
+  return structuredClone({
+    context: defaultContext,
+    categories: categorySeeds,
+    pendingReviews: [],
+    supplierMemory: defaultSupplierMemory,
+    todayOrderList: {},
+    weeklyReminderList: {},
+    managerContact: defaultManagerContact,
+    weeklyChecklistCompletions: {},
+    checklistPopupDismissed: {},
+    lastCycleDate: getTodayInfo().isoDate
+  });
+}
+
+function hydrateParsedState(parsed) {
+  const fallback = getDefaultAppState();
+  return {
+    context: { ...defaultContext, ...(parsed.context || {}) },
+    categories: categorySeeds.map((seed, index) => {
+      const saved = parsed.categories?.[index] || {};
+      return {
+        ...structuredClone(seed),
+        ...saved,
+        items: seed.items.map((seedItem, itemIndex) => ({
+          ...structuredClone(seedItem),
+          ...((saved.items || [])[itemIndex] || {})
+        }))
+      };
+    }),
+    pendingReviews: Array.isArray(parsed.pendingReviews) ? parsed.pendingReviews : [],
+    supplierMemory: mergeSupplierMemory(parsed.supplierMemory),
+    todayOrderList: parsed.todayOrderList && typeof parsed.todayOrderList === "object" ? parsed.todayOrderList : {},
+    weeklyReminderList: parsed.weeklyReminderList && typeof parsed.weeklyReminderList === "object" ? parsed.weeklyReminderList : {},
+    managerContact: { ...defaultManagerContact, ...(parsed.managerContact || {}) },
+    weeklyChecklistCompletions: parsed.weeklyChecklistCompletions && typeof parsed.weeklyChecklistCompletions === "object" ? parsed.weeklyChecklistCompletions : {},
+    checklistPopupDismissed: parsed.checklistPopupDismissed && typeof parsed.checklistPopupDismissed === "object" ? parsed.checklistPopupDismissed : {},
+    lastCycleDate: parsed.lastCycleDate || fallback.lastCycleDate
+  };
 }

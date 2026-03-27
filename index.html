@@ -29,6 +29,31 @@
       </header>
 
       <main class="layout">
+        <section class="panel dashboard-panel auth-panel">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="section-kicker">Sync</p>
+              <h2>Shared Barry's login</h2>
+            </div>
+          </div>
+          <div class="auth-grid">
+            <label class="field">
+              <span>Email</span>
+              <input id="authEmailInput" type="email" placeholder="barrylovesburgers@gmail.com" />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input id="authPasswordInput" type="password" placeholder="Shared password" />
+            </label>
+          </div>
+          <div class="auth-actions">
+            <button id="authSignInButton" class="primary-button" type="button">Sign in</button>
+            <button id="authSignUpButton" class="ghost-button" type="button">Create login</button>
+            <button id="authSignOutButton" class="ghost-button" type="button">Sign out</button>
+          </div>
+          <p id="authStatus" class="helper-copy">Sync is not connected yet.</p>
+        </section>
+
         <section class="panel dashboard-panel">
           <div class="section-heading">
             <div>
@@ -350,6 +375,7 @@
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./app.js"></script>
   </body>
 </html>

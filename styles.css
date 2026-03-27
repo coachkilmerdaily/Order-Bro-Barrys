@@ -151,6 +151,23 @@ textarea {
   gap: 18px;
 }
 
+.auth-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .hidden {
   display: none;
 }
@@ -829,7 +846,8 @@ textarea {
   .delivery-facts,
   .item-grid,
   .summary-stats,
-  .manager-actions {
+  .manager-actions,
+  .auth-grid {
     grid-template-columns: 1fr;
   }
 
