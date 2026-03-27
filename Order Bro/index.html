@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order Bro</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div class="hero-main">
+          <div class="hero-brand">
+            <img
+              class="hero-logo"
+              src="./BarrysLOGO.jpeg"
+              alt="Barry's Burgers logo"
+            />
+            <div>
+              <h1>Order Bro</h1>
+            </div>
+          </div>
+        </div>
+        <div class="hero-chip">
+          <span class="hero-chip-label">Today</span>
+          <strong id="todayLabel"></strong>
+          <span id="currentTimeLabel"></span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel dashboard-panel auth-panel">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="section-kicker">Sync</p>
+              <h2>Shared Barry's login</h2>
+            </div>
+          </div>
+          <div class="auth-grid">
+            <label class="field">
+              <span>Email</span>
+              <input id="authEmailInput" type="email" placeholder="barrylovesburgers@gmail.com" />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input id="authPasswordInput" type="password" placeholder="Shared password" />
+            </label>
+          </div>
+          <div class="auth-actions">
+            <button id="authSignInButton" class="primary-button" type="button">Sign in</button>
+            <button id="authSignUpButton" class="ghost-button" type="button">Create login</button>
+            <button id="authSignOutButton" class="ghost-button" type="button">Sign out</button>
+          </div>
+          <p id="authStatus" class="helper-copy">Sync is not connected yet.</p>
+        </section>
+
+        <section class="panel dashboard-panel">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Suppliers</p>
+              <h2>Choose a supplier</h2>
+            </div>
+          </div>
+          <div id="categoryGrid" class="category-grid"></div>
+        </section>
+
+        <section class="panel dashboard-panel order-list-panel">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Tomorrow</p>
+              <h2>What we need for tomorrow</h2>
+            </div>
+          </div>
+
+          <div id="todayOrderList" class="summary-preview empty-state">
+            Add a supplier order from the drawer and it will appear here.
+          </div>
+
+          <div class="manager-actions">
+            <label class="field">
+              <span>Manager mobile</span>
+              <input id="managerPhoneInput" type="tel" placeholder="0400 000 000" />
+            </label>
+            <label class="field">
+              <span>Manager email</span>
+              <input id="managerEmailInput" type="email" placeholder="manager@example.com" />
+            </label>
+          </div>
+
+          <div class="manager-actions-buttons">
+            <button id="textManagerButton" class="ghost-button" type="button">
+              Text to manager
+            </button>
+            <button id="emailManagerButton" class="primary-button" type="button">
+              Email to manager
+            </button>
+          </div>
+
+          <details class="manager-delivery-settings">
+            <summary>Sending setup</summary>
+            <div class="manager-actions manager-actions-stack">
+              <label class="field">
+                <span>SMS webhook URL</span>
+                <input id="smsWebhookInput" type="url" placeholder="https://your-service.example/send-sms" />
+              </label>
+              <label class="field">
+                <span>Email webhook URL</span>
+                <input id="emailWebhookInput" type="url" placeholder="https://your-service.example/send-email" />
+              </label>
+            </div>
+            <p class="helper-copy">
+              If webhook URLs are added, the manager buttons will send in one tap. Without them, the app falls back to opening a prefilled SMS or email draft.
+            </p>
+          </details>
+        </section>
+
+        <section class="panel dashboard-panel order-list-panel">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Weekly</p>
+              <h2>Weekly bulk items / reminders</h2>
+            </div>
+          </div>
+
+          <div id="weeklyReminderList" class="summary-preview empty-state">
+            Send supplier items here when they are weekly reminders instead of tomorrow's order.
+          </div>
+
+          <div class="section-heading checklist-heading">
+            <div>
+              <p class="section-kicker">Checklist</p>
+              <h2>Weekly checklist</h2>
+            </div>
+          </div>
+
+          <div id="weeklyChecklist" class="summary-preview empty-state">
+            Weekly checklist items will appear here.
+          </div>
+        </section>
+
+        <section class="workspace">
+          <div id="stockPanel" class="stock-drawer hidden">
+            <div id="stockDrawerScrim" class="stock-drawer-scrim"></div>
+            <article class="panel controls-panel stock-drawer-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">Supplier</p>
+                <h2 id="categoryTitle">Select a supplier</h2>
+                <p id="categorySubtext" class="helper-copy"></p>
+              </div>
+              <button id="backToSuppliersButton" class="ghost-button" type="button">
+                Close
+              </button>
+            </div>
+
+            <div id="itemTable" class="item-table empty-state">
+              Tap a supplier to start entering current stock counts.
+            </div>
+
+            <div class="voice-panel">
+              <button id="voiceInputButton" class="ghost-button" type="button">
+                Talk to me
+              </button>
+              <p id="voiceStatus" class="helper-copy">
+                Speak stock counts for this supplier, for example: 3 beef patties, 12 chicken, 8 bacon.
+              </p>
+            </div>
+
+            <section class="simple-summary">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="section-kicker">Suggested Order</p>
+                  <h2>Ready to send</h2>
+                </div>
+                <div class="summary-send-actions">
+                  <button id="sendToWeeklyListButton" class="ghost-button" type="button">
+                    Send to weekly reminders
+                  </button>
+                  <button id="sendToOrderListButton" class="primary-button" type="button">
+                    Send to today's order list
+                  </button>
+                </div>
+              </div>
+              <div id="summaryPreview" class="summary-preview empty-state">
+                Enter current stock to generate the order.
+              </div>
+              <div class="drawer-actions">
+                <button id="clearSupplierButton" class="ghost-button" type="button">
+                  Clear supplier
+                </button>
+              </div>
+              <textarea
+                id="summaryOutput"
+                class="summary-output hidden"
+                readonly
+                spellcheck="false"
+              ></textarea>
+            </section>
+            </article>
+          </div>
+
+          <details class="panel summary-panel accordion-panel">
+            <summary class="accordion-summary">
+              <div>
+                <p class="section-kicker">Week Overview</p>
+                <h2>This week</h2>
+              </div>
+            </summary>
+
+            <div class="accordion-content">
+              <div class="weather-sync-bar">
+                <div>
+                  <strong id="liveWeatherStatus">Live weather not synced yet</strong>
+                  <p id="liveWeatherMeta" class="helper-copy">
+                    Manual weather setting is active until a live fetch succeeds.
+                  </p>
+                </div>
+                <button id="syncWeatherButton" class="ghost-button" type="button">
+                  Sync live weather
+                </button>
+              </div>
+
+              <div class="delivery-facts">
+                <div class="fact-card">
+                  <span>Available today</span>
+                  <strong id="todayAvailabilityValue">-</strong>
+                </div>
+                <div class="fact-card">
+                  <span>Next valid delivery</span>
+                  <strong id="nextDeliveryValue">-</strong>
+                </div>
+                <div class="fact-card">
+                  <span>Stock must cover</span>
+                  <strong id="coverDaysValue">-</strong>
+                </div>
+              </div>
+
+              <div class="category-meta">
+                <label class="field">
+                  <span>Manual trade expectation</span>
+                  <select id="tradeExpectationSelect">
+                    <option value="normal">Normal</option>
+                    <option value="quiet">Quiet</option>
+                    <option value="busy">Busy</option>
+                    <option value="very-busy">Very busy</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Weather outlook</span>
+                  <select id="weatherModeSelect">
+                    <option value="neutral">Typical Semaphore weather</option>
+                    <option value="hot">Hot / warm</option>
+                    <option value="cold">Cold / wet / windy</option>
+                    <option value="severe">Severe weather warning</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Local event impact</span>
+                  <select id="eventImpactSelect">
+                    <option value="none">No known event</option>
+                    <option value="local">Local activity</option>
+                    <option value="major">Major event</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Event name</span>
+                  <input id="eventNameInput" type="text" placeholder="Semaphore Street Fair" />
+                </label>
+                <label class="field">
+                  <span>Supplier note</span>
+                  <input
+                    id="orderNotesInput"
+                    type="text"
+                    placeholder="Optional note"
+                  />
+                </label>
+                <label class="field">
+                  <span>Category demand lean</span>
+                  <select id="categoryDemandSelect">
+                    <option value="steady">Steady week</option>
+                    <option value="busy">Busy week</option>
+                    <option value="quiet">Quiet week</option>
+                  </select>
+                </label>
+                <label class="field field-wide">
+                  <span>Weather / event note</span>
+                  <input
+                    id="contextNoteInput"
+                    type="text"
+                    placeholder="Optional context note for this order cycle"
+                  />
+                </label>
+              </div>
+
+              <div id="deliveryWarnings" class="summary-hints"></div>
+              <div id="contextHints" class="summary-hints"></div>
+              <div id="summaryHints" class="summary-hints"></div>
+              <div class="summary-stats compact-stats">
+                <div class="stat-card">
+                  <span>Total lines</span>
+                  <strong id="totalLineCount">0</strong>
+                </div>
+                <div class="stat-card">
+                  <span>Total units</span>
+                  <strong id="totalUnitCount">0</strong>
+                </div>
+                <div class="stat-card">
+                  <span>Storage warnings</span>
+                  <strong id="warningCount">0</strong>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="panel summary-panel accordion-panel">
+            <summary class="accordion-summary">
+              <div>
+                <p class="section-kicker">Phase Three</p>
+                <h2>Supplier learning</h2>
+              </div>
+            </summary>
+
+            <div class="accordion-content">
+              <div class="upload-panel">
+                <label id="uploadDropzone" class="upload-dropzone">
+                  <input id="documentUploadInput" type="file" multiple accept=".pdf,image/*,.txt,.csv,.json" />
+                  <strong>Drop invoice PDFs, photos, screenshots, or supplier docs here</strong>
+                  <p>
+                    Tap to upload from camera or library on mobile. New files go into a review step before anything is learned.
+                  </p>
+                </label>
+                <div id="uploadStatus" class="helper-copy"></div>
+              </div>
+
+              <div class="learning-layout">
+                <section>
+                  <div class="section-heading compact-heading">
+                    <div>
+                      <p class="section-kicker">Review Queue</p>
+                      <h2>Pending learning</h2>
+                    </div>
+                  </div>
+                  <div id="reviewQueue" class="summary-hints"></div>
+                </section>
+
+                <section>
+                  <div class="section-heading compact-heading">
+                    <div>
+                      <p class="section-kicker">Supplier Memory</p>
+                      <h2>Learned profiles</h2>
+                    </div>
+                  </div>
+                  <div id="supplierMemoryList" class="summary-hints"></div>
+                </section>
+              </div>
+            </div>
+          </details>
+        </section>
+      </main>
+    </div>
+
+    <div id="checklistPopup" class="checklist-popup hidden">
+      <div id="checklistPopupScrim" class="checklist-popup-scrim"></div>
+      <div class="panel checklist-popup-panel">
+        <div class="section-heading compact-heading">
+          <div>
+            <p class="section-kicker">Today</p>
+            <h2>Weekly checklist reminder</h2>
+          </div>
+          <button id="closeChecklistPopupButton" class="ghost-button" type="button">
+            Close
+          </button>
+        </div>
+        <div id="checklistPopupList" class="summary-preview"></div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
