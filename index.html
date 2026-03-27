@@ -63,12 +63,61 @@
               <p class="section-note">Work through the suppliers due today, enter what is on hand, then mark each supplier checked.</p>
             </div>
           </div>
+
+          <div class="run-board">
+            <div class="run-board-top">
+              <div>
+                <p class="section-kicker">Progress</p>
+                <h3 id="todayRunTitle" class="run-board-title">0 of 0 checked</h3>
+                <p id="todayRunNote" class="helper-copy">Today's supplier run will appear here.</p>
+              </div>
+              <button id="viewTotalListButton" class="ghost-button" type="button">
+                View total list
+              </button>
+            </div>
+            <div id="todayRunSuppliers" class="run-suppliers"></div>
+          </div>
+
           <div id="categoryGrid" class="category-grid"></div>
 
           <details class="all-suppliers-panel">
             <summary>All suppliers</summary>
             <div id="allCategoryGrid" class="category-grid compact-category-grid"></div>
           </details>
+        </section>
+
+        <section id="totalListPanel" class="panel dashboard-panel total-list-panel hidden">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Handoff</p>
+              <h2>Total List</h2>
+              <p class="section-note">This is the combined checked list for today, grouped by supplier and ready to send.</p>
+            </div>
+          </div>
+
+          <div id="todayOrderList" class="summary-preview empty-state">
+            Checked supplier totals will appear here.
+          </div>
+
+          <div class="manager-actions">
+            <label class="field">
+              <span>Manager mobile</span>
+              <input id="managerPhoneInput" type="tel" placeholder="0400 000 000" />
+            </label>
+            <label class="field">
+              <span>Manager email</span>
+              <input id="managerEmailInput" type="email" placeholder="manager@example.com" />
+            </label>
+          </div>
+
+          <div class="manager-actions-buttons">
+            <button id="textManagerButton" class="ghost-button" type="button">
+              Text to manager
+            </button>
+            <button id="emailManagerButton" class="primary-button" type="button">
+              Email to manager
+            </button>
+          </div>
         </section>
 
         <section class="workspace">
@@ -111,40 +160,8 @@
 
             <div class="accordion-content tool-menu-content">
               <details class="tool-menu-section">
-                <summary>Order handoff</summary>
+                <summary>Sending setup</summary>
                 <div class="tool-menu-body">
-                  <div class="section-heading compact-heading">
-                    <div>
-                      <p class="section-kicker">Tomorrow</p>
-                      <h2>Order List for Tomorrow</h2>
-                      <p class="section-note">Keep the manager handoff here when you are ready to use that workflow.</p>
-                    </div>
-                  </div>
-
-                  <div id="todayOrderList" class="summary-preview empty-state">
-                    Tomorrow's handoff list will appear here.
-                  </div>
-
-                  <div class="manager-actions">
-                    <label class="field">
-                      <span>Manager mobile</span>
-                      <input id="managerPhoneInput" type="tel" placeholder="0400 000 000" />
-                    </label>
-                    <label class="field">
-                      <span>Manager email</span>
-                      <input id="managerEmailInput" type="email" placeholder="manager@example.com" />
-                    </label>
-                  </div>
-
-                  <div class="manager-actions-buttons">
-                    <button id="textManagerButton" class="ghost-button" type="button">
-                      Text to manager
-                    </button>
-                    <button id="emailManagerButton" class="primary-button" type="button">
-                      Email to manager
-                    </button>
-                  </div>
-
                   <details class="manager-delivery-settings">
                     <summary>Sending setup</summary>
                     <div class="manager-actions manager-actions-stack">

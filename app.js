@@ -299,6 +299,7 @@ let syncSaveTimer = null;
 let syncHydrating = false;
 let drawerTouchStartY = 0;
 let drawerTouchStartX = 0;
+let totalListVisible = false;
 
 const refs = {
   todayLabel: document.getElementById("todayLabel"),
@@ -310,8 +311,13 @@ const refs = {
   authSignUpButton: document.getElementById("authSignUpButton"),
   authSignOutButton: document.getElementById("authSignOutButton"),
   authStatus: document.getElementById("authStatus"),
+  todayRunTitle: document.getElementById("todayRunTitle"),
+  todayRunNote: document.getElementById("todayRunNote"),
+  todayRunSuppliers: document.getElementById("todayRunSuppliers"),
+  viewTotalListButton: document.getElementById("viewTotalListButton"),
   categoryGrid: document.getElementById("categoryGrid"),
   allCategoryGrid: document.getElementById("allCategoryGrid"),
+  totalListPanel: document.getElementById("totalListPanel"),
   stockPanel: document.getElementById("stockPanel"),
   stockDrawerScrim: document.getElementById("stockDrawerScrim"),
   stockDrawerPanel: document.querySelector(".stock-drawer-panel"),
@@ -371,6 +377,7 @@ function init() {
   refs.authSignInButton.addEventListener("click", onAuthSignIn);
   refs.authSignUpButton.addEventListener("click", onAuthSignUp);
   refs.authSignOutButton.addEventListener("click", onAuthSignOut);
+  refs.viewTotalListButton.addEventListener("click", onViewTotalList);
   refs.tradeExpectationSelect.addEventListener("change", onContextChange);
   refs.weatherModeSelect.addEventListener("change", onContextChange);
   refs.eventImpactSelect.addEventListener("change", onContextChange);
@@ -413,6 +420,7 @@ function render() {
   const today = getTodayInfo();
   renderAuthPanel();
   renderContextPanel();
+  renderRunBoard(today);
   renderCategoryGrid(today);
   renderAllCategoryGrid();
   renderActiveCategory(today);
@@ -691,6 +699,37 @@ function renderCategoryGrid(today) {
   });
 }
 
+function renderRunBoard(today) {
+  const dayPlan = getTodayOrderChecklist(today);
+  if (dayPlan.closed) {
+    refs.todayRunTitle.textContent = "Closed today";
+    refs.todayRunNote.textContent = `No supplier runs are scheduled for ${today.dayName}.`;
+    refs.todayRunSuppliers.innerHTML = "";
+    refs.viewTotalListButton.disabled = !getSanitizedTodayOrderEntries().length;
+    refs.totalListPanel.classList.toggle("hidden", !totalListVisible);
+    return;
+  }
+
+  const doneCount = dayPlan.entries.filter((entry) => entry.status === "done").length;
+  refs.todayRunTitle.textContent = `${doneCount} of ${dayPlan.entries.length} checked`;
+  refs.todayRunNote.textContent = doneCount === dayPlan.entries.length
+    ? "Today's supplier checks are complete."
+    : "Tap a supplier below, enter what is on hand, then mark it checked.";
+  refs.todayRunSuppliers.innerHTML = dayPlan.entries
+    .map(({ category, status }) => `
+      <div class="run-supplier-pill ${status}">
+        <span>${category.name}</span>
+        <strong>${status === "done" ? "Checked" : status === "in-progress" ? "In progress" : "To do"}</strong>
+      </div>
+    `)
+    .join("");
+
+  const hasTotalList = getSanitizedTodayOrderEntries().length > 0;
+  refs.viewTotalListButton.disabled = !hasTotalList;
+  refs.viewTotalListButton.textContent = hasTotalList ? "View total list" : "Total list empty";
+  refs.totalListPanel.classList.toggle("hidden", !totalListVisible || !hasTotalList);
+}
+
 function renderAllCategoryGrid() {
   refs.allCategoryGrid.innerHTML = "";
   appState.categories.forEach((category) => {
@@ -804,6 +843,7 @@ function renderActiveCategory(today) {
     row.querySelector(`[data-item-input="${item.id}"]`).addEventListener("input", (event) => {
       const nextValue = Number.parseInt(event.target.value, 10);
       item.currentStock = Number.isFinite(nextValue) && nextValue >= 0 ? nextValue : 0;
+      delete appState.todayOrderList[category.id];
       setOrderChecklistDone(getTodayInfo().isoDate, category.id, false);
       persistState();
     });
@@ -828,7 +868,7 @@ function renderTodayOrderList(today) {
 
   if (!entries.length) {
     refs.todayOrderList.className = "summary-preview empty-state";
-    refs.todayOrderList.textContent = "Tomorrow's handoff list will appear here when that workflow is in use.";
+    refs.todayOrderList.textContent = "Checked supplier totals will appear here.";
     return;
   }
 
@@ -837,6 +877,7 @@ function renderTodayOrderList(today) {
     .map((group) => `
       <div class="order-list-group">
         <h3>${group.supplier}</h3>
+        <p class="order-list-timestamp">${group.checkedAtLabel || ""}</p>
         ${group.lines.map((line) => `
           <div class="order-list-line">
             <strong>${line.name}</strong>
@@ -909,10 +950,44 @@ function markActiveSupplierChecked() {
   }
 
   const today = getTodayInfo();
+  appState.todayOrderList[category.id] = buildCheckedSupplierSnapshot(category);
   setOrderChecklistDone(today.isoDate, category.id, true);
   persistState();
   activeCategoryId = null;
+  totalListVisible = true;
   render();
+}
+
+function buildCheckedSupplierSnapshot(category) {
+  const now = new Date();
+  const checkedAtLabel = now.toLocaleTimeString("en-AU", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: ADELAIDE_TIMEZONE
+  });
+
+  return {
+    supplier: category.supplier,
+    checkedAt: now.toISOString(),
+    checkedAtLabel: `Checked ${checkedAtLabel}`,
+    lines: category.items.map((item) => ({
+      name: item.name,
+      quantity: Number.isFinite(Number(item.currentStock)) ? Number(item.currentStock) : 0,
+      unit: getCountedUnit(item),
+      capped: false
+    }))
+  };
+}
+
+function onViewTotalList() {
+  if (!getSanitizedTodayOrderEntries().length) {
+    return;
+  }
+
+  totalListVisible = true;
+  render();
+  refs.totalListPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function dismissChecklistPopup() {
@@ -1570,7 +1645,7 @@ async function emailManager() {
     return;
   }
 
-  const subject = `Barry's Burgers order list for ${formatShortDate(getTodayInfo().date)}`;
+  const subject = `Barry's Burgers checked list for ${formatShortDate(getTodayInfo().date)}`;
   if (appState.managerContact.emailWebhookUrl) {
     const result = await sendViaWebhook(appState.managerContact.emailWebhookUrl, {
       channel: "email",
@@ -1591,19 +1666,22 @@ function buildManagerOrderMessage() {
   const today = getTodayInfo();
   const entries = getSanitizedTodayOrderEntries();
   if (!entries.length) {
-    return `Order List for Tomorrow\n${formatLongDate(today.date)}\n\nNo supplier orders added yet.`;
+    return `Today's Checked List\n${formatLongDate(today.date)}\n\nNo supplier checks added yet.`;
   }
 
   const lines = [
-    "Order List for Tomorrow",
+    "Today's Checked List",
     formatLongDate(today.date),
     ""
   ];
 
   entries.forEach((group) => {
     lines.push(group.supplier);
+    if (group.checkedAtLabel) {
+      lines.push(group.checkedAtLabel);
+    }
     group.lines.forEach((line) => {
-      lines.push(`${line.name} - ${line.quantity} ${line.unit}${line.capped ? " (capped by storage)" : ""}`);
+      lines.push(`${line.name} - ${line.quantity} ${line.unit}`);
     });
     lines.push("");
   });
@@ -1636,7 +1714,7 @@ function sanitizeTodayOrderList() {
   const sanitized = {};
   Object.entries(appState.todayOrderList || {}).forEach(([key, group]) => {
     const lines = Array.isArray(group?.lines)
-      ? group.lines.filter((line) => Number.isFinite(Number(line.quantity)) && Number(line.quantity) > 0 && line.name && line.unit)
+      ? group.lines.filter((line) => Number.isFinite(Number(line.quantity)) && Number(line.quantity) >= 0 && line.name && line.unit)
       : [];
     if (lines.length) {
       sanitized[key] = {
