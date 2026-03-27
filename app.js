@@ -837,6 +837,16 @@ function renderActiveCategory(today) {
           <span class="stock-capacity">${capacityLabel}</span>
         </div>
       </div>
+      <div class="item-toggle-row">
+        <button
+          type="button"
+          class="item-toggle-button ${item.notRequiredTomorrow ? "active" : ""}"
+          data-item-toggle="${item.id}"
+          aria-pressed="${item.notRequiredTomorrow ? "true" : "false"}"
+        >
+          ${item.notRequiredTomorrow ? "Not required for tomorrow" : "Mark not required"}
+        </button>
+      </div>
       ${result.warning ? `<p class="item-meta">${result.warning}</p>` : ""}
     `;
 
@@ -849,6 +859,14 @@ function renderActiveCategory(today) {
     });
 
     row.querySelector(`[data-item-input="${item.id}"]`).addEventListener("change", () => {
+      render();
+    });
+
+    row.querySelector(`[data-item-toggle="${item.id}"]`).addEventListener("click", () => {
+      item.notRequiredTomorrow = !item.notRequiredTomorrow;
+      delete appState.todayOrderList[category.id];
+      setOrderChecklistDone(getTodayInfo().isoDate, category.id, false);
+      persistState();
       render();
     });
 
@@ -881,7 +899,7 @@ function renderTodayOrderList(today) {
         ${group.lines.map((line) => `
           <div class="order-list-line">
             <strong>${line.name}</strong>
-            <span>${line.quantity} ${line.unit}</span>
+            <span>${line.notRequiredTomorrow ? "Not required tomorrow" : `${line.quantity} ${line.unit}`}</span>
           </div>
         `).join("")}
       </div>
@@ -975,7 +993,8 @@ function buildCheckedSupplierSnapshot(category) {
       name: item.name,
       quantity: Number.isFinite(Number(item.currentStock)) ? Number(item.currentStock) : 0,
       unit: getCountedUnit(item),
-      capped: false
+      capped: false,
+      notRequiredTomorrow: Boolean(item.notRequiredTomorrow)
     }))
   };
 }
@@ -1598,6 +1617,7 @@ function clearActiveSupplier() {
 
   category.items.forEach((item) => {
     item.currentStock = 0;
+    item.notRequiredTomorrow = false;
   });
   delete appState.todayOrderList[category.id];
   delete appState.weeklyReminderList[category.id];
@@ -1681,7 +1701,11 @@ function buildManagerOrderMessage() {
       lines.push(group.checkedAtLabel);
     }
     group.lines.forEach((line) => {
-      lines.push(`${line.name} - ${line.quantity} ${line.unit}`);
+      lines.push(
+        line.notRequiredTomorrow
+          ? `${line.name} - Not required for tomorrow`
+          : `${line.name} - ${line.quantity} ${line.unit}`
+      );
     });
     lines.push("");
   });
