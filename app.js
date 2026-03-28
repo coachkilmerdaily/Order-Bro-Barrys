@@ -51,6 +51,59 @@ const defaultWeeklyChecklist = [
   { id: "packaging-check", title: "Check packaging levels for orders", note: "To be done on Wednesday", dayIndex: 3 }
 ];
 
+const defaultPrepTasks = [
+  {
+    id: "prep-chicken",
+    title: "Prep chicken tubs",
+    note: "Check the fresh prep first",
+    dayIndices: [0, 2, 4, 5],
+    productId: "chicken",
+    supplierId: "meat",
+    recipeTitle: "Chicken prep",
+    recipeBody: "Trim, portion, prep into tubs, label, and rotate stock before service."
+  },
+  {
+    id: "prep-bacon",
+    title: "Prep bacon tubs",
+    note: "Keep enough ready for service",
+    dayIndices: [0, 3, 5],
+    productId: "bacon",
+    supplierId: "meat",
+    recipeTitle: "Bacon prep",
+    recipeBody: "Prep bacon into service tubs, label clearly, and keep raw stock separated."
+  },
+  {
+    id: "slice-tomato",
+    title: "Slice burger tomatoes",
+    note: "Only prep what the shift needs",
+    dayIndices: [0, 3, 5, 6],
+    productId: "tomato",
+    supplierId: "fv",
+    recipeTitle: "Tomato prep",
+    recipeBody: "Wash, slice evenly for burgers, store covered, and rotate older prep first."
+  },
+  {
+    id: "shred-lettuce",
+    title: "Shred lettuce",
+    note: "Check quality before prepping",
+    dayIndices: [0, 3, 5, 6],
+    productId: "iceberg",
+    supplierId: "fv",
+    recipeTitle: "Lettuce prep",
+    recipeBody: "Discard poor leaves, shred for service, keep chilled, and avoid over-prepping."
+  },
+  {
+    id: "bun-pull",
+    title: "Pull buns for service",
+    note: "Match tomorrow's run and trade expectation",
+    dayIndices: [0, 4, 5],
+    productId: "burger-buns",
+    supplierId: "buns",
+    recipeTitle: "Bun pull",
+    recipeBody: "Pull enough buns for service, check freshness, and flag any shortage before close."
+  }
+];
+
 const dailyOrderSchedule = {
   0: ["buns", "galipo", "meat", "fv"],
   1: [],
@@ -319,7 +372,11 @@ const refs = {
   viewTotalListButton: document.getElementById("viewTotalListButton"),
   categoryGrid: document.getElementById("categoryGrid"),
   allCategoryGrid: document.getElementById("allCategoryGrid"),
+  prepList: document.getElementById("prepList"),
   totalListPanel: document.getElementById("totalListPanel"),
+  handoffStageTitle: document.getElementById("handoffStageTitle"),
+  handoffStageNote: document.getElementById("handoffStageNote"),
+  handoffMeterFill: document.getElementById("handoffMeterFill"),
   stockPanel: document.getElementById("stockPanel"),
   stockDrawerScrim: document.getElementById("stockDrawerScrim"),
   stockDrawerPanel: document.querySelector(".stock-drawer-panel"),
@@ -410,6 +467,7 @@ function init() {
   refs.checklistPopupScrim.addEventListener("click", dismissChecklistPopup);
   refs.closeChecklistPopupButton.addEventListener("click", dismissChecklistPopup);
   refs.weeklyChecklist.addEventListener("change", onWeeklyChecklistToggle);
+  refs.prepList.addEventListener("click", onPrepListClick);
   refs.documentUploadInput.addEventListener("change", onUploadInputChange);
   refs.uploadDropzone.addEventListener("dragover", onDropzoneDragOver);
   refs.uploadDropzone.addEventListener("dragleave", onDropzoneDragLeave);
@@ -426,6 +484,7 @@ function render() {
   renderRunBoard(today);
   renderCategoryGrid(today);
   renderAllCategoryGrid();
+  renderPrepList(today);
   renderActiveCategory(today);
   renderTodayOrderList(today);
   renderWeeklyReminderList();
@@ -685,7 +744,7 @@ function renderCategoryGrid(today) {
           <h3>${category.name}</h3>
           <p>${category.items.length} item${category.items.length === 1 ? "" : "s"} to check</p>
         </div>
-        <span class="category-card-count">${status === "done" ? "✓" : supplierMark}</span>
+        <span class="category-card-count">${status === "done" ? "&#10003;" : supplierMark}</span>
       </div>
       <div class="category-card-meta">
         <span class="category-card-accent">${supplierAccent}</span>
@@ -767,6 +826,62 @@ function renderAllCategoryGrid() {
     });
     refs.allCategoryGrid.appendChild(button);
   });
+}
+
+function renderPrepList(today) {
+  const tasks = getTodayPrepTasks(today);
+  if (!tasks.length) {
+    refs.prepList.className = "summary-preview empty-state";
+    refs.prepList.textContent = "No prep tasks are scheduled for today.";
+    return;
+  }
+
+  refs.prepList.className = "summary-preview prep-list";
+  refs.prepList.innerHTML = tasks
+    .map((entry) => {
+      const linkedProduct = entry.product;
+      const statusLabel = entry.state.done
+        ? "Done"
+        : entry.state.rolledToTomorrow
+          ? "Rolled to tomorrow"
+          : entry.isRolled
+            ? "Rolled over"
+            : "To do";
+      return `
+        <article class="prep-card ${entry.state.done ? "done" : entry.state.rolledToTomorrow ? "rolled" : ""}">
+          <div class="prep-card-head">
+            <div>
+              <h3>${entry.task.title}</h3>
+              <p>${entry.task.note || ""}</p>
+            </div>
+            <span class="prep-status">${statusLabel}</span>
+          </div>
+          <div class="prep-meta">
+            <span>${linkedProduct ? `Linked product: ${linkedProduct.name}` : "General prep task"}</span>
+            <span>${entry.isRolled ? `Rolled from ${formatShortDateString(entry.sourceDate)}` : `Due ${today.dayName}`}</span>
+          </div>
+          <div class="prep-actions">
+            <button type="button" class="ghost-button" data-prep-action="done" data-prep-id="${entry.task.id}" ${entry.state.done ? "disabled" : ""}>
+              ${entry.state.done ? "Completed" : "Mark done"}
+            </button>
+            <button type="button" class="ghost-button ${entry.state.lowStock ? "prep-flag-active" : ""}" data-prep-action="low" data-prep-id="${entry.task.id}">
+              ${entry.state.lowStock ? "Low stock flagged" : "Low stock"}
+            </button>
+            <button type="button" class="ghost-button ${entry.state.needsOrdering ? "prep-flag-active" : ""}" data-prep-action="order" data-prep-id="${entry.task.id}">
+              ${entry.state.needsOrdering ? "Needs ordering" : "Flag order"}
+            </button>
+            <button type="button" class="ghost-button" data-prep-action="roll" data-prep-id="${entry.task.id}" ${entry.state.done || entry.state.rolledToTomorrow ? "disabled" : ""}>
+              ${entry.state.rolledToTomorrow ? "Rolled to tomorrow" : "Roll to tomorrow"}
+            </button>
+          </div>
+          <details class="prep-recipe">
+            <summary>Recipe / instructions</summary>
+            <p>${entry.task.recipeBody || "No instructions saved yet."}</p>
+          </details>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderActiveCategory(today) {
@@ -897,12 +1012,27 @@ function renderTodayOrderList(today) {
   refs.smsWebhookInput.value = appState.managerContact.smsWebhookUrl;
   refs.emailWebhookInput.value = appState.managerContact.emailWebhookUrl;
 
+  const dayPlan = getTodayOrderChecklist(today);
+  const doneCount = dayPlan.closed ? 0 : dayPlan.entries.filter((entry) => entry.status === "done").length;
+  const totalCount = dayPlan.closed ? 0 : dayPlan.entries.length;
+  const fillPercent = totalCount ? Math.round((doneCount / totalCount) * 100) : 0;
+  refs.handoffMeterFill.style.height = `${fillPercent}%`;
+  refs.handoffStageTitle.textContent = fillPercent === 0 ? "Empty bucket" : fillPercent === 100 ? "Ready to send" : `${fillPercent}% filled`;
+  refs.handoffStageNote.textContent = fillPercent === 0
+    ? "Check suppliers and this list will fill up."
+    : fillPercent === 100
+      ? "Today's checked suppliers have filled the handoff list."
+      : "The handoff list is filling as suppliers are checked.";
+
   const groups = appState.todayOrderList || {};
-  const entries = Object.values(groups).filter((group) => Array.isArray(group.lines) && group.lines.length);
+  const entries = [
+    ...Object.values(groups).filter((group) => Array.isArray(group.lines) && group.lines.length),
+    ...buildPrepFlagGroups(today)
+  ];
 
   if (!entries.length) {
     refs.todayOrderList.className = "summary-preview empty-state";
-    refs.todayOrderList.textContent = "Checked supplier totals will appear here.";
+    refs.todayOrderList.textContent = "Needed top-up lines will appear here after suppliers are checked.";
     return;
   }
 
@@ -915,7 +1045,7 @@ function renderTodayOrderList(today) {
         ${group.lines.map((line) => `
           <div class="order-list-line">
             <strong>${line.name}</strong>
-            <span>${line.notRequiredTomorrow ? "Not required tomorrow" : `${line.quantity} ${line.unit}`}</span>
+            <span>${line.prepFlag ? line.prepFlag : line.notRequiredTomorrow ? "Not required tomorrow" : `Need ${line.quantity} ${line.unit}`}</span>
           </div>
         `).join("")}
       </div>
@@ -1005,14 +1135,70 @@ function buildCheckedSupplierSnapshot(category) {
     supplier: category.supplier,
     checkedAt: now.toISOString(),
     checkedAtLabel: `Checked ${checkedAtLabel}`,
-    lines: category.items.map((item) => ({
+    lines: category.items
+      .map((item) => buildNeededLineFromItem(item))
+      .filter((line) => line)
+  };
+}
+
+function buildNeededLineFromItem(item) {
+  const currentStock = Number.isFinite(Number(item.currentStock)) ? Number(item.currentStock) : 0;
+  const countedLimit = item.maxPreppedStock ?? item.hardMax ?? 0;
+  const neededToFillStorage = Math.max(0, countedLimit - currentStock);
+
+  if (item.notRequiredTomorrow) {
+    return {
       name: item.name,
-      quantity: Number.isFinite(Number(item.currentStock)) ? Number(item.currentStock) : 0,
+      quantity: 0,
       unit: getCountedUnit(item),
       capped: false,
-      notRequiredTomorrow: Boolean(item.notRequiredTomorrow)
-    }))
+      notRequiredTomorrow: true
+    };
+  }
+
+  if (neededToFillStorage <= 0) {
+    return null;
+  }
+
+  return {
+    name: item.name,
+    quantity: neededToFillStorage,
+    unit: getCountedUnit(item),
+    capped: false,
+    notRequiredTomorrow: false
   };
+}
+
+function buildPrepFlagGroups(today) {
+  const tasks = getTodayPrepTasks(today)
+    .filter((entry) => entry.state.lowStock || entry.state.needsOrdering)
+    .filter((entry) => !entry.state.done && !entry.state.rolledToTomorrow);
+
+  const groups = {};
+  tasks.forEach((entry) => {
+    const product = entry.product;
+    const supplier = product?.supplier || "Prep list";
+    const key = normalizeSupplierKey(supplier);
+    if (!groups[key]) {
+      groups[key] = {
+        supplier,
+        checkedAtLabel: "Prep list flags",
+        lines: []
+      };
+    }
+    groups[key].lines.push({
+      name: product?.name || entry.task.title,
+      quantity: 0,
+      unit: product ? getCountedUnit(product) : "task",
+      notRequiredTomorrow: false,
+      prepFlag: [
+        entry.state.lowStock ? "low stock" : "",
+        entry.state.needsOrdering ? "needs ordering" : ""
+      ].filter(Boolean).join(" + ")
+    });
+  });
+
+  return Object.values(groups);
 }
 
 function onViewTotalList() {
@@ -1065,6 +1251,39 @@ function onWeeklyChecklistToggle(event) {
   const today = getTodayInfo();
   const completionKey = `${today.isoDate}:${checklistId}`;
   appState.weeklyChecklistCompletions[completionKey] = event.target.checked;
+  persistState();
+  render();
+}
+
+function onPrepListClick(event) {
+  const button = event.target.closest("[data-prep-action]");
+  if (!button) {
+    return;
+  }
+
+  const taskId = button.dataset.prepId;
+  const action = button.dataset.prepAction;
+  const today = getTodayInfo();
+  const state = getPrepTaskState(today.isoDate, taskId);
+
+  if (action === "done") {
+    state.done = true;
+    state.rolledToTomorrow = false;
+  }
+
+  if (action === "low") {
+    state.lowStock = !state.lowStock;
+  }
+
+  if (action === "order") {
+    state.needsOrdering = !state.needsOrdering;
+  }
+
+  if (action === "roll" && !state.done) {
+    state.rolledToTomorrow = true;
+    queuePrepTaskRollover(addDays(today.date, 1), taskId, today.isoDate);
+  }
+
   persistState();
   render();
 }
@@ -1741,13 +1960,13 @@ function launchConfettiBurst() {
 
 function buildManagerOrderMessage() {
   const today = getTodayInfo();
-  const entries = getSanitizedTodayOrderEntries();
+  const entries = [...getSanitizedTodayOrderEntries(), ...buildPrepFlagGroups(today)];
   if (!entries.length) {
     return `Today's Checked List\n${formatLongDate(today.date)}\n\nNo supplier checks added yet.`;
   }
 
   const lines = [
-    "Today's Checked List",
+    "What We Need",
     formatLongDate(today.date),
     ""
   ];
@@ -1759,9 +1978,11 @@ function buildManagerOrderMessage() {
     }
     group.lines.forEach((line) => {
       lines.push(
-        line.notRequiredTomorrow
+        line.prepFlag
+          ? `${line.name} - ${line.prepFlag}`
+          : line.notRequiredTomorrow
           ? `${line.name} - Not required for tomorrow`
-          : `${line.name} - ${line.quantity} ${line.unit}`
+          : `${line.name} - Need ${line.quantity} ${line.unit}`
       );
     });
     lines.push("");
@@ -1795,7 +2016,7 @@ function sanitizeTodayOrderList() {
   const sanitized = {};
   Object.entries(appState.todayOrderList || {}).forEach(([key, group]) => {
     const lines = Array.isArray(group?.lines)
-      ? group.lines.filter((line) => Number.isFinite(Number(line.quantity)) && Number(line.quantity) >= 0 && line.name && line.unit)
+      ? group.lines.filter((line) => ((Number.isFinite(Number(line.quantity)) && Number(line.quantity) > 0) || line.notRequiredTomorrow) && line.name && line.unit)
       : [];
     if (lines.length) {
       sanitized[key] = {
@@ -1870,6 +2091,65 @@ function getTodayOrderChecklist(today) {
   return { closed: false, entries };
 }
 
+function getTodayPrepTasks(today) {
+  const scheduled = defaultPrepTasks
+    .filter((task) => task.dayIndices.includes(today.dayIndex))
+    .map((task) => ({ task, sourceDate: today.isoDate, isRolled: false }));
+
+  const rolloverEntries = Object.entries(appState.prepTaskRollovers?.[today.isoDate] || {})
+    .map(([taskId, sourceDate]) => {
+      const task = defaultPrepTasks.find((entry) => entry.id === taskId);
+      return task ? { task, sourceDate, isRolled: true } : null;
+    })
+    .filter(Boolean);
+
+  const merged = [...scheduled];
+  rolloverEntries.forEach((entry) => {
+    if (!merged.some((existing) => existing.task.id === entry.task.id)) {
+      merged.push(entry);
+    }
+  });
+
+  return merged
+    .map((entry) => ({
+      ...entry,
+      state: getPrepTaskState(today.isoDate, entry.task.id),
+      product: getStateProductById(entry.task.productId)
+    }))
+    .sort((left, right) => {
+      if (left.state.done !== right.state.done) {
+        return left.state.done ? 1 : -1;
+      }
+      if (left.isRolled !== right.isRolled) {
+        return left.isRolled ? -1 : 1;
+      }
+      return left.task.title.localeCompare(right.task.title);
+    });
+}
+
+function getPrepTaskState(isoDate, taskId) {
+  if (!appState.prepTaskState[isoDate]) {
+    appState.prepTaskState[isoDate] = {};
+  }
+  if (!appState.prepTaskState[isoDate][taskId]) {
+    appState.prepTaskState[isoDate][taskId] = {
+      done: false,
+      lowStock: false,
+      needsOrdering: false,
+      rolledToTomorrow: false
+    };
+  }
+  return appState.prepTaskState[isoDate][taskId];
+}
+
+function queuePrepTaskRollover(targetDate, taskId, sourceIsoDate) {
+  const isoDate = toIsoDate(targetDate);
+  if (!appState.prepTaskRollovers[isoDate]) {
+    appState.prepTaskRollovers[isoDate] = {};
+  }
+  appState.prepTaskRollovers[isoDate][taskId] = sourceIsoDate;
+}
+
 function getOrderChecklistStatus(isoDate, category, isDone) {
   if (isDone) {
     return "done";
@@ -1921,6 +2201,8 @@ function resetState() {
     weeklyReminderList: {},
     managerContact: defaultManagerContact,
     dailyOrderChecklist: {},
+    prepTaskState: {},
+    prepTaskRollovers: {},
     weeklyChecklistCompletions: {},
     checklistPopupDismissed: {},
     lastCycleDate: getTodayInfo().isoDate
@@ -1934,6 +2216,21 @@ function applyDailyRolloverIfNeeded() {
   const today = getTodayInfo();
   if (appState.lastCycleDate === today.isoDate) {
     return;
+  }
+
+  const previousDate = appState.lastCycleDate;
+  if (previousDate) {
+    const previousInfo = {
+      isoDate: previousDate,
+      date: new Date(`${previousDate}T12:00:00`),
+      dayIndex: new Date(`${previousDate}T12:00:00`).getDay()
+    };
+    getTodayPrepTasks(previousInfo).forEach((entry) => {
+      const state = getPrepTaskState(previousDate, entry.task.id);
+      if (!state.done && !state.rolledToTomorrow) {
+        queuePrepTaskRollover(today.date, entry.task.id, previousDate);
+      }
+    });
   }
 
   appState.categories.forEach((category, categoryIndex) => {
@@ -2158,6 +2455,10 @@ function buildProductOptions(selectedValue) {
 
 function getProductById(productId) {
   return categorySeeds.flatMap((category) => category.items).find((item) => item.id === productId) ?? null;
+}
+
+function getStateProductById(productId) {
+  return appState.categories.flatMap((category) => category.items).find((item) => item.id === productId) ?? null;
 }
 
 function suggestProductMatchId(rawName) {
@@ -2406,6 +2707,8 @@ function getDefaultAppState() {
     weeklyReminderList: {},
     managerContact: defaultManagerContact,
     dailyOrderChecklist: {},
+    prepTaskState: {},
+    prepTaskRollovers: {},
     weeklyChecklistCompletions: {},
     checklistPopupDismissed: {},
     lastCycleDate: getTodayInfo().isoDate
@@ -2449,6 +2752,8 @@ function hydrateParsedState(parsed) {
     weeklyReminderList: parsed.weeklyReminderList && typeof parsed.weeklyReminderList === "object" ? parsed.weeklyReminderList : {},
     managerContact: { ...defaultManagerContact, ...(parsed.managerContact || {}) },
     dailyOrderChecklist: parsed.dailyOrderChecklist && typeof parsed.dailyOrderChecklist === "object" ? parsed.dailyOrderChecklist : {},
+    prepTaskState: parsed.prepTaskState && typeof parsed.prepTaskState === "object" ? parsed.prepTaskState : {},
+    prepTaskRollovers: parsed.prepTaskRollovers && typeof parsed.prepTaskRollovers === "object" ? parsed.prepTaskRollovers : {},
     weeklyChecklistCompletions: parsed.weeklyChecklistCompletions && typeof parsed.weeklyChecklistCompletions === "object" ? parsed.weeklyChecklistCompletions : {},
     checklistPopupDismissed: parsed.checklistPopupDismissed && typeof parsed.checklistPopupDismissed === "object" ? parsed.checklistPopupDismissed : {},
     lastCycleDate: parsed.lastCycleDate || fallback.lastCycleDate

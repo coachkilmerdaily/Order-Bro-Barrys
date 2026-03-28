@@ -89,17 +89,42 @@
           </details>
         </section>
 
+        <section class="panel dashboard-panel prep-panel">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Prep</p>
+              <h2>Today's prep list</h2>
+              <p class="section-note">Day-based prep tasks, linked product flags, and rollover items all in one place.</p>
+            </div>
+          </div>
+
+          <div id="prepList" class="summary-preview empty-state">
+            Prep tasks for today will appear here.
+          </div>
+        </section>
+
         <section id="totalListPanel" class="panel dashboard-panel total-list-panel hidden">
           <div class="section-heading">
             <div>
               <p class="section-kicker">Handoff</p>
-              <h2>Total List</h2>
-              <p class="section-note">This is the combined checked list for today, grouped by supplier and ready to send.</p>
+              <h2>What We Need</h2>
+              <p class="section-note">This list is calculated from what staff entered against each item's storage limit, grouped by supplier and ready to send.</p>
+            </div>
+          </div>
+
+          <div class="handoff-stage">
+            <div>
+              <p class="section-kicker">List fill</p>
+              <h3 id="handoffStageTitle" class="run-board-title">Empty bucket</h3>
+              <p id="handoffStageNote" class="helper-copy">Check suppliers and this list will fill up.</p>
+            </div>
+            <div class="handoff-meter" aria-hidden="true">
+              <div id="handoffMeterFill" class="handoff-meter-fill"></div>
             </div>
           </div>
 
           <div id="todayOrderList" class="summary-preview empty-state">
-            Checked supplier totals will appear here.
+            Needed top-up lines will appear here.
           </div>
 
           <div class="manager-actions">

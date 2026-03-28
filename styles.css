@@ -395,6 +395,64 @@ textarea {
   border: 1px solid rgba(120, 84, 47, 0.08);
 }
 
+.total-list-panel {
+  background:
+    linear-gradient(180deg, rgba(244, 250, 255, 0.96), rgba(227, 240, 250, 0.94));
+  border-color: rgba(116, 154, 183, 0.18);
+}
+
+.handoff-stage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(116, 154, 183, 0.14);
+}
+
+.handoff-meter {
+  position: relative;
+  width: 72px;
+  height: 108px;
+  border-radius: 24px 24px 18px 18px;
+  border: 2px solid rgba(116, 154, 183, 0.34);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(232, 241, 248, 0.82));
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.handoff-meter::after {
+  content: "";
+  position: absolute;
+  inset: 8px 10px auto;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(116, 154, 183, 0.14);
+}
+
+.handoff-meter-fill {
+  position: absolute;
+  inset: auto 0 0;
+  height: 0%;
+  background:
+    linear-gradient(180deg, rgba(135, 194, 228, 0.88), rgba(94, 158, 204, 0.94));
+  transition: height 320ms ease;
+}
+
+.handoff-meter-fill::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 16px;
+  background: rgba(220, 244, 255, 0.5);
+  border-radius: 50%;
+}
+
 .run-board-top {
   display: flex;
   align-items: center;
@@ -944,6 +1002,100 @@ textarea {
   margin: -2px 0 2px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.prep-panel {
+  background:
+    linear-gradient(180deg, rgba(255, 248, 240, 0.96), rgba(247, 238, 226, 0.94));
+}
+
+.prep-list {
+  display: grid;
+  gap: 12px;
+}
+
+.prep-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(120, 84, 47, 0.08);
+}
+
+.prep-card.done {
+  background: rgba(232, 245, 232, 0.92);
+  border-color: rgba(95, 157, 98, 0.2);
+}
+
+.prep-card.rolled {
+  background: rgba(246, 237, 223, 0.92);
+}
+
+.prep-card-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prep-card-head h3 {
+  margin: 0;
+}
+
+.prep-card-head p,
+.prep-meta span,
+.prep-recipe p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.prep-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(120, 84, 47, 0.08);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.prep-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.prep-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.prep-flag-active {
+  background: rgba(201, 134, 61, 0.16);
+  border-color: rgba(201, 134, 61, 0.24);
+}
+
+.prep-recipe {
+  padding-top: 2px;
+}
+
+.prep-recipe summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 600;
+  list-style: none;
+}
+
+.prep-recipe summary::-webkit-details-marker {
+  display: none;
+}
+
+.prep-recipe p {
+  margin-top: 10px;
+  line-height: 1.5;
 }
 
 .order-list-line {
